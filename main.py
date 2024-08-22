@@ -1,6 +1,11 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import sys
+import os
+import configparser
+from dotenv import load_dotenv
+from model.traveller_database import TravellerDatabase
+from model.migrations import run_migrations
 from controller.sectors_controller import SectorController
 from controller.planets_controller import PlanetController
 from controller.characters_controller import CharactersController
@@ -11,37 +16,70 @@ from controller.events_controller import EventsController
 from controller.technology_controller import TechnologyController
 from controller.organizations_controller import OrganizationsController
 from controller.adventure_hooks_controller import AdventureHooksController
+from controller.SQLQueryController import SQLQueryController
+
 
 class HitchhikersGuideToTheGalaxy(QMainWindow):
     def __init__(self):
-        super().__init__()
+        super().__init__() 
 
+        # get .env variables
+        load_dotenv('config/.env')
+        # Access values
+        db_type = os.getenv('DB_TYPE')
+                      
+        # get .config 
+        config = configparser.ConfigParser()
+        # Access values
+        # theme = config.get('Display', 'theme', fallback='system')
+        # language = config.get('Preferences', 'language', fallback='en')
+        window_width = config.getint('Display', 'window_width', fallback=1024)
+        window_height = config.getint('Display', 'window_height', fallback=768)
+        window_x = config.getint('Display', 'window_x', fallback=100)
+        window_y = config.getint('Display', 'window_y', fallback=100)
+        
+        
+        # setup Window
         self.setWindowTitle("Hitchhikers Guide to the Galaxy")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(window_x, window_y, window_width, window_height)
+
+        # Setup database connection
+        db_instance = TravellerDatabase(db_type)
 
         # Initialize Controllers
-        self.sector_controller = SectorController()
-        self.planet_controller = PlanetController()
-        self.characters_controller = CharactersController()
-        self.lifeforms_controller = LifeformsController()
-        self.events_controller = EventsController()
-        self.organizations_controller = OrganizationsController()
-        self.adventure_hooks_controller = AdventureHooksController()
-        self.ships_controller = ShipsController()
-        self.vehicals_controller = VehiclesController()
-        self.technology_controller = TechnologyController()
-
+        self.sector_controller = SectorController(db_instance)
+        self.planet_controller = PlanetController(db_instance)
+        self.characters_controller = CharactersController(db_instance)
+        self.lifeforms_controller = LifeformsController(db_instance)
+        self.events_controller = EventsController(db_instance)
+        self.organizations_controller = OrganizationsController(db_instance)
+        self.adventure_hooks_controller = AdventureHooksController(db_instance)
+        self.ships_controller = ShipsController(db_instance)
+        self.vehicals_controller = VehiclesController(db_instance)
+        self.technology_controller = TechnologyController(db_instance)
+        self.sql_query_controller = SQLQueryController(db_instance)
         self.init_ui()
 
     def init_ui(self):
         menubar = QMenuBar(self)
         self.setMenuBar(menubar)
 
+        # File Menu
         file_menu = menubar.addMenu("File Menu")
         action_exit = QAction("Exit", self)
         file_menu.addAction(action_exit)
         action_exit.triggered.connect(self.close)
 
+        # Add Database Menu
+        db_menu = menubar.addMenu("Database")
+        action_run_migrations = QAction("Run Migrations", self)
+        db_menu.addAction(action_run_migrations)
+        action_run_migrations.triggered.connect(self.run_migrations)
+        
+        action_run_sql = QAction("SQL Query", self)
+        db_menu.addAction(action_run_sql)
+        action_run_sql.triggered.connect(self.run_sql)
+        
         # Main Interface (buttons)
         button_layout = QHBoxLayout()
         self.sector_button = QPushButton("Sector")
@@ -93,7 +131,11 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.organizations_button.clicked.connect(self.show_organizations)
         self.adventure_hooks_button.clicked.connect(self.show_adventure_hooks)
 
-    def show_sector(self):
+    def run_migrations(self):
+        run_migrations()
+        QMessageBox.information(self, "Migrations", "Migrations have been run successfully.")
+      
+    def run_sql(self):
         self.sector_controller.show_view(self.lower_text_box)
 
     def show_planet(self):

@@ -3,6 +3,7 @@ config/.env
 
 # Ignore editor files
 .vscode/
+.code-workspace
 
 # Ignore Python virtual environments
 env/
