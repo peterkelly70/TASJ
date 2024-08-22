@@ -1,0 +1,11 @@
+# Ignore .env files
+config/.env
+
+# Ignore editor files
+.vscode
+
+# Ignore Python virtual environments
+env/
+.env/
+venv/
+panic/
