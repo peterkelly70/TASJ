@@ -1,11 +1,47 @@
-# Ignore .env files
+# Ignore environment configuration files
 config/.env
 
 # Ignore editor files
-.vscode
+.vscode/
 
 # Ignore Python virtual environments
 env/
 .env/
 venv/
 panic/
+
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore log files
+*.log
+
+# Ignore compiled C extensions
+*.so
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Ignore macOS specific files
+.DS_Store
+
+# Ignore system swap files
+*.swp
+
+# Ignore coverage reports
+htmlcov/
+.coverage
+
+# Ignore any personal backup files
+*.bak
+*.tmp
+
+# Ignore the build/ and dist/ directories for setup tools
+build/
+dist/
+
+# Ignore the egg-info directory
+*.egg-info/
