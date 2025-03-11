@@ -28,8 +28,6 @@ class TravellerDatabase:
                 raise ValueError(f"Unsupported database type: {self.db_type}")
             self._initialized = True
 
-
-
     def execute_script(self, script):
         try:
             cursor = self.conn.cursor()
@@ -107,7 +105,7 @@ class TravellerDatabase:
         except Exception as e:
             print(f"Error deleting record: {e}")
             return -1
-   
+
     def get_table_names(self):
         try:
             cursor = self.conn.cursor()
@@ -120,7 +118,24 @@ class TravellerDatabase:
         except Exception as e:
             print(f"Error fetching table names: {e}")
             return []
-        
+
+    def get_table_columns(self, table_name):
+        """Returns a list of column names for the given table."""
+        cursor = self.conn.cursor()
+        if self.db_type == 'sqlite':
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [row[1] for row in cursor.fetchall()]
+        elif self.db_type == 'mysql':
+            cursor.execute(f"DESCRIBE {table_name}")
+            columns = [row[0] for row in cursor.fetchall()]
+        else:
+            columns = []
+        return columns
+
+    def column_exists(self, table_name, column_name):
+        """Returns True if the given column exists in the table."""
+        return column_name in self.get_table_columns(table_name)
+
     def close(self):
         self.conn.close()
         self._initialized = False  # Allow reinitialization if needed
