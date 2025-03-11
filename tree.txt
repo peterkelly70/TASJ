@@ -1,0 +1,95 @@
+.
+├── assets
+│   ├── adventures
+│   │   ├── images
+│   │   └── maps
+│   ├── animals
+│   │   └── images
+│   ├── organisations
+│   │   └── images
+│   ├── people
+│   │   └── images
+│   ├── planets
+│   │   ├── images
+│   │   └── maps
+│   ├── sectors
+│   │   ├── images
+│   │   └── maps
+│   ├── ships
+│   │   ├── images
+│   │   └── maps
+│   └── vehicals
+│       └── images
+├── build_release.sh
+├── config
+├── controller
+│   ├── adventure_hooks_controller.py
+│   ├── adventure_planner.py
+│   ├── characters_controller.py
+│   ├── events_controller.py
+│   ├── lifeforms_controller.py
+│   ├── organizations_controller.py
+│   ├── planets_controller.py
+│   ├── README.md
+│   ├── sectors_controller.py
+│   ├── ships_controller.py
+│   ├── SQLQueryController.py
+│   ├── technology_controller.py
+│   └── vehicals_controller.py
+├── database
+│   ├── structure_dump.sql
+│   └── traveller_campaign.db
+├── LICENSE
+├── logs
+├── main.py
+├── makeTree.sh
+├── migrations
+│   ├── 0001_add_new_table_mysql.sql
+│   ├── 0001_add_new_table_sqlite.sql
+│   ├── mysql
+│   │   └── 0000_setup.sql
+│   ├── README.md
+│   └── sqlite
+│       ├── 0000_setup.sql
+│       └── 0001_populate.sql
+├── model
+│   ├── characters_db.py
+│   ├── character_skills_db.py
+│   ├── event_participants_db.py
+│   ├── lifeforms_db.py
+│   ├── lifeform_traits_db.py
+│   ├── migrations.py
+│   ├── mysql_interface.py
+│   ├── oraganizations_db.py
+│   ├── organization_events_db.py
+│   ├── organization_technologies_db.py
+│   ├── person_skills_db.py
+│   ├── planets_db.py
+│   ├── README.md
+│   ├── sectors_db.py
+│   ├── ship_crew_db.py
+│   ├── ships_db.py
+│   ├── sqlite_interface.py
+│   ├── technology_db.py
+│   ├── traveller_database.py
+│   ├── vehicals_db.py
+│   └── vehicle_crew_db.py
+├── README.md
+├── requirements.txt
+├── secret.py
+├── setup.py
+├── stuff
+│   └── sectors.py
+├── TASJ.code-workspace
+├── tests
+│   ├── README.md
+│   ├── test_characters_db.py
+│   ├── test_main.py
+│   ├── test_organization_events_db.py
+│   └── test_ships_db.py
+├── tree.txt
+└── view
+    ├── README.md
+    └── sql_query_view.py
+
+32 directories, 60 files
