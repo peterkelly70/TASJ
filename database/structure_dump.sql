@@ -5,7 +5,7 @@ CREATE TABLE sectors (
                 y_coordinate INTEGER,
                 description TEXT,
                 image_path TEXT
-            );
+            , abbreviation TEXT, milieu TEXT);
 CREATE TABLE planets (
                 planet_id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -14,7 +14,7 @@ CREATE TABLE planets (
                 y_coordinate INTEGER,
                 UPP TEXT,
                 description TEXT,
-                image_path TEXT,
+                image_path TEXT, starport TEXT, size TEXT, atmosphere TEXT, hydrographics TEXT, population TEXT, government TEXT, law_level TEXT, tech_level TEXT, allegiance TEXT, stellar TEXT, gas_giant TEXT, bases TEXT, trade_codes TEXT, travel_code TEXT, importance TEXT, economic TEXT, hex TEXT,
                 FOREIGN KEY (sector_id) REFERENCES sectors(sector_id)
             );
 CREATE TABLE people (
@@ -177,3 +177,19 @@ CREATE TABLE diet_types (
                 diet_name TEXT,
                 description TEXT
             );
+CREATE TABLE migrations (
+        migration_name TEXT PRIMARY KEY,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+CREATE TABLE jumps (
+    jump_id INTEGER PRIMARY KEY,
+    start_sector TEXT,
+    start_hex TEXT,
+    end_sector TEXT,
+    end_hex TEXT,
+    jump_distance INTEGER,
+    requires_fuel BOOLEAN DEFAULT 0,
+    restricted_zone BOOLEAN DEFAULT 0,
+    FOREIGN KEY (start_sector) REFERENCES sectors(name),
+    FOREIGN KEY (end_sector) REFERENCES sectors(name)
+);
