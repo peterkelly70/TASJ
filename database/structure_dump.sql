@@ -14,7 +14,7 @@ CREATE TABLE planets (
                 y_coordinate INTEGER,
                 UPP TEXT,
                 description TEXT,
-                image_path TEXT, starport TEXT, size TEXT, atmosphere TEXT, hydrographics TEXT, population TEXT, government TEXT, law_level TEXT, tech_level TEXT, allegiance TEXT, stellar TEXT, gas_giant TEXT, bases TEXT, trade_codes TEXT, travel_code TEXT, importance TEXT, economic TEXT, hex TEXT,
+                image_path TEXT, starport TEXT, size TEXT, atmosphere TEXT, hydrographics TEXT, population TEXT, government TEXT, law_level TEXT, tech_level TEXT, allegiance TEXT, stellar TEXT, gas_giant TEXT, bases TEXT, trade_codes TEXT, travel_code TEXT, importance TEXT, economic TEXT, hex TEXT, subsector_id INTEGER, travel_zone TEXT, pbg TEXT, UWP TEXT,
                 FOREIGN KEY (sector_id) REFERENCES sectors(sector_id)
             );
 CREATE TABLE people (

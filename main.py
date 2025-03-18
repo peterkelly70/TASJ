@@ -6,6 +6,7 @@ import sys
 import os
 import configparser
 from dotenv import load_dotenv
+import multiprocessing
 from model.traveller_database import TravellerDatabase
 from model.migrations import run_migrations
 from controller.data_download_controller import DataDownloadController
@@ -20,7 +21,7 @@ LIGHT_STYLESHEET = "QMainWindow { background-color: white; color: black; }"
 DARK_STYLESHEET = "QMainWindow { background-color: #2e2e2e; color: white; }"
 
 class SettingsDialog(QDialog):
-    """ Dialog for selecting theme and font. """
+    """Dialog for selecting theme and font."""
     def __init__(self, current_theme, current_font, parent=None):
         super(SettingsDialog, self).__init__(parent)
         self.setWindowTitle("Settings")
@@ -88,7 +89,12 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
 
         # Initialize database and controllers
         self.db_instance = TravellerDatabase(DATABASE_TYPE)
-        self.data_download_controller = DataDownloadController(self.db_instance)
+        # Create progress queue and cancel event in main.py and pass to the controller.
+        self.progress_queue = multiprocessing.Queue()
+        self.cancel_event = multiprocessing.Event()
+        self.data_download_controller = DataDownloadController(self.db_instance,
+                                                               self.progress_queue,
+                                                               self.cancel_event)
 
         # Setup UI
         self.setWindowTitle("Hitchhiker's Guide to the Galaxy")
@@ -173,23 +179,24 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         print("UI setup complete.")
 
     def apply_theme_and_font(self):
-        """ Applies the selected theme and font globally. """
+        """Applies the selected theme and font globally."""
         base_sheet = DARK_STYLESHEET if self.current_theme == "Dark" else LIGHT_STYLESHEET
         font_override = f"QMainWindow, QMenuBar, QTabWidget, QPushButton, QTextEdit, QLabel, QComboBox, QDialogButtonBox {{ font-family: \"{self.current_font.family()}\"; font-size: {self.current_font.pointSize()}pt; }}"
         self.setStyleSheet(base_sheet + font_override)
         QApplication.instance().setFont(self.current_font)
 
     def download_all_data(self):
-        """ Starts the download in a background process and updates UI. """
+        """Starts the download in a background process and updates UI."""
         self.lower_text_box.append("🚀 Downloading all data...")
-        self.data_download_controller.start_download(self.lower_text_box)
-        # Start monitoring progress
+        self.data_download_controller.start_download(self.lower_text_box,
+                                                     self.progress_bar,
+                                                     self.cancel_button)
         self.progress_timer.start(500)  # Update progress every 500ms
         self.progress_bar.setValue(0)
         self.cancel_button.setEnabled(True)
 
     def cancel_download(self):
-        """ Cancels an ongoing download process and updates UI. """
+        """Cancels an ongoing download process and updates UI."""
         self.lower_text_box.append("⏹️ Cancelling download...")
         self.data_download_controller.cancel_download(self.lower_text_box)
         self.progress_timer.stop()
@@ -197,13 +204,12 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.cancel_button.setEnabled(False)
 
     def update_progress(self):
-        """ Updates progress bar based on background task messages. """
-        message = ""  # ✅ Ensure `message` is always defined
+        """Updates progress bar based on background task messages."""
+        message = ""  # Ensure `message` is always defined.
         while not self.data_download_controller.progress_queue.empty():
             message = self.data_download_controller.progress_queue.get()
-            self.lower_text_box.append(message)  # ✅ Display progress in the text box
+            self.lower_text_box.append(message)
 
-            # **Simulated progress bar behavior**
             if "Progress:" in message:
                 try:
                     progress_text = message.split(":")[1].strip().split("/")
@@ -213,12 +219,10 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
                 except ValueError:
                     pass
 
-        # **Only check if a message was received**
         if message and "Download complete" in message:
             self.progress_timer.stop()
             self.progress_bar.setValue(100)
             self.cancel_button.setEnabled(False)
-
 
     def run_migrations(self):
         """Runs database migrations."""
@@ -229,7 +233,7 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
             self.lower_text_box.append(f"❌ Error running migrations: {str(e)}")
 
     def open_settings(self):
-        """ Opens the settings dialog and applies changes globally. """
+        """Opens the settings dialog and applies changes globally."""
         dialog = SettingsDialog(self.current_theme, self.current_font, self)
         if dialog.exec_() == QDialog.Accepted:
             self.current_theme = dialog.theme_combo.currentText()

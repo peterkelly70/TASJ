@@ -1,5 +1,3 @@
-# model/planets_db.py
-
 class PlanetDB:
     def __init__(self, db_instance):
         """
@@ -31,9 +29,17 @@ class PlanetDB:
             - sector_id
             - x_coordinate
             - y_coordinate
-            - UPP
+            - UWP
             - description
             - image_path
+            - starport
+            - size
+            - atmosphere
+            - hydrographics
+            - population
+            - government
+            - law_level
+            - tech_level
             - allegiance
             - stellar
             - gas_giant
@@ -42,10 +48,7 @@ class PlanetDB:
             - travel_code
             - importance
             - economic
-            - population
-            - government
-            - law_level
-            - tech_level
+            - hex
         Returns True if the record was created successfully, False otherwise.
         """
         result = self.db.create_record("planets", data)
@@ -60,6 +63,7 @@ class PlanetDB:
         """
         Updates an existing planet record (identified by 'name' and optionally 'sector_id')
         with the provided data dictionary.
+        Uses 'UWP' as the field for the world profile.
         Returns True if the update was successful, False otherwise.
         """
         conditions = {"name": planet_name}
