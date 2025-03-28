@@ -1,0 +1,14 @@
+[Colors]
+background = #2D2D2D
+text = #FFFFFF
+menu_background = #363636
+menu_text = #FFFFFF
+button_background = #404040
+button_text = #FFFFFF
+
+[Styles]
+QMainWindow = background-color: #2D2D2D; color: #FFFFFF;
+QMenuBar = background-color: #363636; color: #FFFFFF;
+QMenu = background-color: #363636; color: #FFFFFF;
+QPushButton = background-color: #404040; color: #FFFFFF; padding: 5px; border: 1px solid #555555; border-radius: 3px;
+QTextEdit = background-color: #2D2D2D; color: #FFFFFF; border: 1px solid #555555;

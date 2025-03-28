@@ -1,15 +1,96 @@
 import unittest
-from PyQt5.QtWidgets import QApplication
-from main import HitchhikersGuideToTheGalaxy
+from unittest.mock import MagicMock, patch
+from PyQt5.QtWidgets import QApplication, QDialog
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
+import os
+import logging
+from main import HitchhikersGuideToTheGalaxy, SettingsDialog, UISettings
 
 class TestHitchhikersGuideToTheGalaxy(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QApplication([])  # Create a QApplication for the tests
+        # Create a QApplication for the tests
+        cls.app = QApplication([])
+        # Configure test logging
+        logging.basicConfig(level=logging.DEBUG)
+        cls.logger = logging.getLogger(__name__)
 
     def setUp(self):
-        self.window = HitchhikersGuideToTheGalaxy()  # Create the main window
+        """Set up test environment before each test."""
+        # Create a temporary config for testing
+        self.test_config = {
+            'theme': 'Light',
+            'font_family': 'Arial',
+            'font_size': 10
+        }
+        self.window = HitchhikersGuideToTheGalaxy()
 
+    def test_initial_state(self):
+        """Test initial application state."""
+        self.assertIsNotNone(self.window)
+        self.assertEqual(self.window.windowTitle(), "Hitchhiker's Guide to the Galaxy")
+        self.assertTrue(hasattr(self.window, 'db_instance'))
+        self.assertTrue(hasattr(self.window, 'data_download_controller'))
+
+    def test_theme_switching(self):
+        """Test theme switching functionality."""
+        # Test light theme
+        self.window.current_theme = "Light"
+        self.window.apply_theme_and_font()
+        self.assertIn("background-color: white", self.window.styleSheet())
+
+        # Test dark theme
+        self.window.current_theme = "Dark"
+        self.window.apply_theme_and_font()
+        self.assertIn("background-color: #2e2e2e", self.window.styleSheet())
+
+    def test_font_settings(self):
+        """Test font customization."""
+        test_font = QFont("Times New Roman", 12)
+        self.window.current_font = test_font
+        self.window.apply_theme_and_font()
+        self.assertEqual(self.window.font().family(), "Times New Roman")
+        self.assertEqual(self.window.font().pointSize(), 12)
+
+    @patch('main.QFontDialog.getFont')
+    def test_settings_dialog(self, mock_get_font):
+        """Test settings dialog functionality."""
+        # Mock font dialog return value
+        mock_font = QFont("Arial", 11)
+        mock_get_font.return_value = (mock_font, True)
+
+        # Create settings dialog
+        dialog = SettingsDialog("Light", QFont("Arial", 10), self.window)
+        
+        # Test theme selection
+        dialog.theme_combo.setCurrentText("Dark")
+        self.assertEqual(dialog.theme_combo.currentText(), "Dark")
+
+        # Test font selection
+        dialog.choose_font()
+        self.assertEqual(dialog.selected_font, mock_font)
+
+    def test_database_initialization(self):
+        """Test database initialization."""
+        self.assertIsNotNone(self.window.db_instance)
+        self.assertEqual(self.window.db_instance.db_type, os.getenv("DATABASE_TYPE", "sqlite"))
+
+    @patch('main.DataDownloadController.start_download')
+    def test_download_functionality(self, mock_start_download):
+        """Test data download functionality."""
+        self.window.download_all_data()
+        mock_start_download.assert_called_once()
+        self.assertTrue(self.window.cancel_button.isEnabled())
+
+    def test_error_handling(self):
+        """Test error handling in main operations."""
+        # Test invalid database type
+        with self.assertRaises(ValueError):
+            with patch.dict(os.environ, {'DATABASE_TYPE': 'invalid_type'}):
+                HitchhikersGuideToTheGalaxy()
+
+    # Original button tests
     def test_sector_button(self):
         self.window.sector_button.click()
         self.assertEqual(self.window.lower_text_box.toPlainText(), "Sector button has been pushed")
@@ -50,12 +131,27 @@ class TestHitchhikersGuideToTheGalaxy(unittest.TestCase):
         self.window.adventure_hooks_button.click()
         self.assertEqual(self.window.lower_text_box.toPlainText(), "Adventure Hooks button has been pushed")
 
+    def test_progress_monitoring(self):
+        """Test progress monitoring functionality."""
+        # Test progress update
+        self.window.progress_queue.put("Progress: 50")
+        self.window.update_progress()
+        self.assertEqual(self.window.progress_bar.value(), 50)
+
+        # Test completion
+        self.window.progress_queue.put("Download complete!")
+        self.window.update_progress()
+        self.assertEqual(self.window.progress_bar.value(), 100)
+        self.assertFalse(self.window.cancel_button.isEnabled())
+
     def tearDown(self):
-        self.window.close()  # Clean up the window after each test
+        """Clean up after each test."""
+        self.window.close()
 
     @classmethod
     def tearDownClass(cls):
-        cls.app.quit()  # Quit the QApplication after all tests
+        """Clean up after all tests."""
+        cls.app.quit()
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,28 @@
+[Colors]
+background = #000000
+text = #FFE81F
+menu_background = #111111
+menu_text = #FFE81F
+button_background = #333333
+button_text = #FFE81F
+accent = #49DAFF
+
+[Styles]
+QMainWindow = background-color: #000000; color: #FFE81F;
+QMenuBar = background-color: #111111; color: #FFE81F;
+QMenu = background-color: #111111; color: #FFE81F;
+QPushButton = background-color: #333333; color: #FFE81F; border: 1px solid #FFE81F; padding: 5px; border-radius: 0px;
+QPushButton:hover = background-color: #444444;
+QTextEdit = background-color: #181818; color: #FFFFFF; border: 1px solid #FFE81F;
+QLabel = color: #FFE81F;
+QProgressBar = border: 1px solid #FFE81F; text-align: center; color: #000000; background-color: #333333;
+QProgressBar::chunk = background-color: #FFE81F;
+QTabWidget::pane = border-top: 1px solid #FFE81F;
+QTabBar::tab = background: #111111; color: #FFE81F; padding: 8px;
+QTabBar::tab:selected = background: #333333;
+QListWidget = background-color: #181818; color: #FFFFFF; border: 1px solid #FFE81F;
+QGroupBox = color: #49DAFF; border: 1px solid #49DAFF; margin-top: 10px;
+QGroupBox::title = subcontrol-origin: margin; subcontrol-position: top left; padding: 0 3px;
+
+[Font]
+font_id = sf-distant-galaxy
