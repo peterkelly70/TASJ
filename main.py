@@ -21,7 +21,10 @@ from model.traveller_database import TravellerDatabase
 from model.migrations import run_migrations
 from controller.data_download_controller import DataDownloadController
 from controller.font_controller import FontController
+from controller.theme_controller import ThemeController
+from controller.settings_controller import SettingsController
 from font_manager import FontManager
+from view.main_window import MainWindow
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -272,7 +275,7 @@ class LicensesDialog(QDialog):
         else:
             self.license_text.setText(f"License: {font_info['license']}\nNo detailed license text available.")
 
-class HitchhikersGuideToTheGalaxy(QMainWindow):
+class HitchhikersGuideToTheGalaxy(MainWindow):
     """Main application window for the Traveller Campaign Management System.
     
     This class handles the main UI and coordinates between different controllers
@@ -281,15 +284,32 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     """
     
     def __init__(self) -> None:
-        super().__init__()
         logger.info("Initializing Hitchhiker's Guide to the Galaxy...")
         
         try:
+            # Initialize database first since other components need it
             self._initialize_database()
-            self._load_settings()
+            
+            # Initialize settings without restoring geometry
+            self.qsettings = QSettings("YourCompany", "TASJ")
+            self._load_theme_and_font_settings()
+            
+            # Initialize controllers
             self._initialize_controllers()
+            
+            # Now we can call MainWindow's __init__ with controllers
+            super().__init__(
+                settings_controller=self.settings_controller,
+                theme_controller=self.theme_controller,
+                font_controller=self.font_controller,
+                data_controller=self.data_download_controller
+            )
+            
+            # After MainWindow init, we can restore geometry and set up UI
+            self._restore_window_geometry()
             self._setup_ui()
             self.apply_theme_and_font()
+            
             logger.info("Application initialized successfully")
             
         except Exception as e:
@@ -305,13 +325,12 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.db_instance = TravellerDatabase(DATABASE_TYPE)
         logger.info(f"Database initialized with type: {DATABASE_TYPE}")
         
-    def _load_settings(self) -> None:
-        """Load and initialize application settings."""
+    def _load_theme_and_font_settings(self) -> None:
+        """Load theme and font settings without restoring geometry."""
         config_parser = configparser.ConfigParser()
         config_parser.read('config/.config')
         default_theme = config_parser.get('Display', 'theme', fallback='Light').capitalize()
         
-        self.qsettings = QSettings("YourCompany", "TASJ")
         self.current_theme = self.qsettings.value("theme", default_theme)
         self.current_font = QFont("Arial", 10)
         
@@ -319,7 +338,10 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         if font_string:
             self.current_font.fromString(font_string)
 
-        # Restore window geometry
+        logger.info(f"Settings loaded - Theme: {self.current_theme}")
+        
+    def _restore_window_geometry(self) -> None:
+        """Restore window geometry from settings."""
         geometry = self.qsettings.value("geometry")
         if geometry:
             self.restoreGeometry(geometry)
@@ -328,8 +350,6 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
             self.resize(1024, 768)
             self.center_window()
             
-        logger.info(f"Settings loaded - Theme: {self.current_theme}")
-
     def center_window(self):
         """Center the window on the screen."""
         frame = self.frameGeometry()
@@ -345,7 +365,9 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
 
     def _initialize_controllers(self) -> None:
         """Initialize application controllers."""
-        self.font_controller = FontController()
+        self.settings_controller = SettingsController()
+        self.font_controller = FontController()  # Create font_controller first
+        self.theme_controller = ThemeController(font_controller=self.font_controller)  # Pass font_controller to theme_controller
         self.data_download_controller = DataDownloadController(
             self.db_instance,
             multiprocessing.Queue(),
