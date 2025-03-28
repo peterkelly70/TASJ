@@ -1,0 +1,30 @@
+Font Licenses and Acknowledgments
+
+1. Glass TTY VT220 Font
+Author: Viacheslav Slavinsky
+License: Creative Commons Attribution-ShareAlike 4.0 International
+Source: https://github.com/svofski/glasstty
+Description: A faithful recreation of the DEC VT220 terminal font.
+
+2. Final Frontier Font
+Author: Allen R. Walden
+License: Free for Personal Use
+Source: https://www.fontspace.com/final-frontier-font-f3093
+Description: Inspired by the LCARS interface from Star Trek.
+
+3. Ubuntu Font
+Author: Dalton Maag Ltd
+License: Ubuntu Font License 1.0
+Source: https://ubuntu.com/legal/font-licence
+Description: The Ubuntu Font Family are a set of matching new libre/open fonts.
+
+4. DejaVu Fonts
+License: DejaVu Font License (based on Bitstream Vera)
+Source: https://dejavu-fonts.github.io/License.html
+Description: DejaVu fonts are modifications of the Bitstream Vera fonts designed for greater Unicode coverage.
+
+5. Noto Fonts
+Author: Google
+License: SIL Open Font License, Version 1.1
+Source: https://github.com/googlefonts/noto-fonts/blob/main/LICENSE
+Description: Google's font family that aims to support all languages with a harmonious look and feel.

@@ -1,0 +1,83 @@
+{
+    "fonts": {
+        "glass_tty_vt220": {
+            "name": "Glass TTY VT220 Font",
+            "author": "Viacheslav Slavinsky",
+            "license": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "license_file": "cc-by-sa-4.0.txt",
+            "source": "https://github.com/svofski/glasstty",
+            "download_url": "https://github.com/svofski/glasstty/raw/master/Glass_TTY_VT220.ttf",
+            "filename": "Glass_TTY_VT220.ttf",
+            "description": "A faithful recreation of the DEC VT220 terminal font.",
+            "usage": "Matrix theme terminal display"
+        },
+        "final_frontier": {
+            "name": "Final Frontier Font",
+            "author": "Allen R. Walden",
+            "license": "Free for Personal Use",
+            "license_file": null,
+            "source": "https://www.fontspace.com/final-frontier-font-f3093",
+            "download_url": "https://www.fontspace.com/get/family/f3093",
+            "filename": "final_frontier.ttf",
+            "description": "Inspired by the LCARS interface from Star Trek.",
+            "usage": "LCARS theme interface"
+        },
+        "ubuntu": {
+            "name": "Ubuntu Font",
+            "author": "Dalton Maag Ltd",
+            "license": "Ubuntu Font License 1.0",
+            "license_file": "ubuntu-font-1.0.txt",
+            "source": "https://ubuntu.com/legal/font-licence",
+            "download_url": "https://assets.ubuntu.com/v1/0cef8205-ubuntu-font-family-0.83.zip",
+            "filename": "Ubuntu-R.ttf",
+            "archive": true,
+            "archive_path": "ubuntu-font-family-0.83/Ubuntu-R.ttf",
+            "description": "The Ubuntu Font Family are a set of matching new libre/open fonts.",
+            "usage": "Default system font"
+        },
+        "dejavu": {
+            "name": "DejaVu Fonts",
+            "author": "DejaVu Project",
+            "license": "DejaVu Font License",
+            "license_file": "dejavu-font.txt",
+            "source": "https://dejavu-fonts.github.io/License.html",
+            "download_url": "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip",
+            "filename": "DejaVuSans.ttf",
+            "archive": true,
+            "archive_path": "dejavu-fonts-ttf-2.37/ttf/DejaVuSans.ttf",
+            "description": "DejaVu fonts are modifications of the Bitstream Vera fonts designed for greater Unicode coverage.",
+            "usage": "Alternative system font"
+        },
+        "noto": {
+            "name": "Noto Fonts",
+            "author": "Google",
+            "license": "SIL Open Font License, Version 1.1",
+            "license_file": "sil-ofl-1.1.txt",
+            "source": "https://github.com/googlefonts/noto-fonts/blob/main/LICENSE",
+            "download_url": "https://noto-website-2.storage.googleapis.com/pkgs/NotoSans-hinted.zip",
+            "filename": "NotoSans-Regular.ttf",
+            "archive": true,
+            "archive_path": "NotoSans-Regular.ttf",
+            "description": "Google's font family that aims to support all languages with a harmonious look and feel.",
+            "usage": "Alternative system font"
+        },
+        "sf-distant-galaxy": {
+            "name": "SF Distant Galaxy",
+            "description": "A font inspired by the Star Wars universe, suitable for titles and futuristic themes.",
+            "author": "ShyFoundry",
+            "usage": "Free for personal and commercial use",
+            "license_text_file": "licenses/ShyFoundry_Freeware_EULA.txt",
+            "source_url": "https://www.1001fonts.com/sf-distant-galaxy-font.html",
+            "download_url": "https://www.1001fonts.com/download/sf-distant-galaxy.zip",
+            "files": [
+                "SFDistantGalaxy.ttf",
+                "SFDistantGalaxyAlt.ttf",
+                "SFDistantGalaxyAltOutline.ttf",
+                "SFDistantGalaxyItalic.ttf",
+                "SFDistantGalaxyOutline.ttf",
+                "SFDistantGalaxySymbols.ttf",
+                "SFDistantGalaxySymbolsItalic.ttf"
+            ]
+        }
+    }
+}

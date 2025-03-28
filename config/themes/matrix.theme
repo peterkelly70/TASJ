@@ -1,0 +1,64 @@
+[Colors]
+background=#000000
+text=#00FF00
+menu_background=#001100
+menu_text=#00FF00
+button_background=#003300
+button_text=#00FF00
+
+[Styles]
+QMainWindow {
+    background-color: #000000;
+    color: #00FF00;
+}
+
+QMenuBar {
+    background-color: #001100;
+    color: #00FF00;
+    border-bottom: 1px solid #00FF00;
+}
+
+QMenu {
+    background-color: #001100;
+    color: #00FF00;
+    border: 1px solid #00FF00;
+}
+
+QMenu::item:selected {
+    background-color: #003300;
+}
+
+QPushButton {
+    background-color: #001100;
+    color: #00FF00;
+    border: 1px solid #00FF00;
+    padding: 5px;
+    font-family: "Courier New";
+}
+
+QPushButton:hover {
+    background-color: #003300;
+    border: 1px solid #00FF00;
+}
+
+QTextEdit {
+    background-color: #000000;
+    color: #00FF00;
+    border: 1px solid #00FF00;
+    font-family: "Courier New";
+}
+
+QProgressBar {
+    border: 1px solid #00FF00;
+    background-color: #000000;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #003300;
+}
+
+/* Matrix-style text effect */
+QLabel, QMenu::item {
+    font-family: "Courier New";
+}

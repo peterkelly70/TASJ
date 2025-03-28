@@ -1,0 +1,64 @@
+[Colors]
+background=#000000
+text=#FF9C00
+menu_background=#99661F
+menu_text=#FFCC99
+button_background=#CC6600
+button_text=#FFFFFF
+
+[Styles]
+QMainWindow {
+    background-color: #000000;
+    color: #FF9C00;
+}
+
+QMenuBar {
+    background-color: #99661F;
+    color: #FFCC99;
+    border-bottom: 2px solid #FF9C00;
+    border-radius: 10px;
+}
+
+QMenu {
+    background-color: #000000;
+    color: #FFCC99;
+    border: 2px solid #FF9C00;
+    border-radius: 10px;
+}
+
+QMenu::item:selected {
+    background-color: #CC6600;
+}
+
+QPushButton {
+    background-color: #CC6600;
+    color: #FFFFFF;
+    padding: 5px 15px;
+    border: none;
+    border-radius: 15px;
+    min-height: 30px;
+}
+
+QPushButton:hover {
+    background-color: #FF9C00;
+}
+
+QTextEdit {
+    background-color: #000000;
+    color: #FF9C00;
+    border: 2px solid #CC6600;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+QProgressBar {
+    border: 2px solid #CC6600;
+    border-radius: 10px;
+    background-color: #000000;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #FF9C00;
+    border-radius: 8px;
+}
