@@ -68,10 +68,10 @@ class ThemeModel:
         logger.info(f"ThemeModel initialized. Using themes directory: {self.themes_dir.resolve()}")
             
         self.current_theme = "light"  # Default theme
-        self.current_stylesheet = ""  # Default stylesheet
+        self.current_stylesheet: str = "" # Default empty stylesheet
         
     def get_available_themes(self) -> list[str]:
-        """Get list of available themes.
+        """Get list of available themes using os.listdir.
         
         Scans the themes directory for .theme files and returns their names
         without the extension.
@@ -80,10 +80,23 @@ class ThemeModel:
             list[str]: Sorted list of available theme names
         """
         themes = []
-        logger.info(f"Scanning for themes in: {self.themes_dir}")
-        for file in self.themes_dir.glob("*.theme"):
-            logger.info(f"Found theme file: {file.name}")
-            themes.append(file.stem)
+        logger.info(f"Scanning for themes in (using os.listdir): {self.themes_dir}")
+        try:
+            if not self.themes_dir.exists() or not self.themes_dir.is_dir():
+                logger.error(f"Themes directory not found or not a directory: {self.themes_dir}")
+                return []
+                
+            for item_name in os.listdir(self.themes_dir):
+                logger.debug(f"Found item: {item_name}")
+                item_path = self.themes_dir / item_name
+                if item_path.is_file() and item_name.endswith(".theme"):
+                    theme_name = item_name[:-len(".theme")] # Remove .theme extension
+                    logger.info(f"Found theme file: {item_name} -> Theme name: {theme_name}")
+                    themes.append(theme_name)
+        except Exception as e:
+            logger.error(f"Error scanning themes directory {self.themes_dir}: {e}", exc_info=True)
+            return [] # Return empty list on error
+            
         logger.info(f"Available themes found: {themes}")
         return sorted(themes)
         
