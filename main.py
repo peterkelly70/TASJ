@@ -16,15 +16,13 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dataclasses import dataclass
 import json
+from pathlib import Path
 
 from model.traveller_database import TravellerDatabase
 from model.migrations import run_migrations
 from controller.data_download_controller import DataDownloadController
 from controller.font_controller import FontController
-from controller.theme_controller import ThemeController
-from controller.settings_controller import SettingsController
 from font_manager import FontManager
-from view.main_window import MainWindow
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -43,6 +41,63 @@ DATABASE_TYPE: str = os.getenv("DATABASE_TYPE", "sqlite")
 DATABASE_PATH: str = os.getenv("DATABASE_FILE_PATH", "database/traveller_campaign.db")
 
 # Theme styles
+THEME_STYLESHEETS: Dict[str, str] = {}
+
+def _extract_css_from_theme(content: str) -> str:
+    """Extract CSS content from theme file, skipping section headers."""
+    css_lines = []
+    in_styles = False
+    for line in content.splitlines():
+        if line.strip() == '[Styles]':
+            in_styles = True
+            continue
+        if line.strip() == '[Colors]':
+            in_styles = False
+            continue
+        if in_styles and line.strip():
+            css_lines.append(line)
+    return '\n'.join(css_lines)
+
+def _load_single_theme(theme_file: Path) -> tuple[str, str]:
+    """Load a single theme file and return (theme_name, stylesheet)."""
+    theme_name = theme_file.stem.capitalize()
+    logger.info(f"Loading theme: {theme_name} from {theme_file}")
+    
+    with open(theme_file, 'r') as f:
+        css_content = f.read()
+    
+    stylesheet = _extract_css_from_theme(css_content)
+    return theme_name, stylesheet
+
+def load_theme_stylesheets():
+    """Load all theme files into the THEME_STYLESHEETS dictionary."""
+    logger.info("Starting theme loading...")
+    themes_dir = Path("config/themes")
+    
+    if not themes_dir.exists():
+        logger.error(f"Themes directory does not exist: {themes_dir}")
+        return
+    if not themes_dir.is_dir():
+        logger.error(f"Themes path is not a directory: {themes_dir}")
+        return
+        
+    theme_files = list(themes_dir.glob("*.theme"))
+    logger.info(f"Found {len(theme_files)} theme files: {[f.name for f in theme_files]}")
+        
+    for theme_file in theme_files:
+        try:
+            theme_name, stylesheet = _load_single_theme(theme_file)
+            THEME_STYLESHEETS[theme_name] = stylesheet
+            logger.info(f"Successfully loaded theme: {theme_name}")
+            logger.debug(f"Theme contents:\n{stylesheet}")
+                
+        except Exception as e:
+            logger.error(f"Failed to load theme {theme_file.stem.capitalize()}: {e}")
+            logger.error("Error details:", exc_info=True)
+
+# Load themes at startup
+load_theme_stylesheets()
+
 LIGHT_STYLESHEET: str = """
     QMainWindow, QDialog {
         background-color: white;
@@ -94,63 +149,87 @@ class UISettings:
     stylesheet: str
 
 class SettingsDialog(QDialog):
-    """Dialog for selecting theme and font settings.
-    
-    Attributes:
-        current_theme (str): The currently selected theme
-        current_font (QFont): The currently selected font
-        selected_font (QFont): The newly selected font (if any)
-        theme_combo (QComboBox): Dropdown for theme selection
-        font_display (QLabel): Label showing current font details
-    """
+    """Dialog for selecting theme and font settings."""
     
     def __init__(self, current_theme: str, current_font: QFont, parent: Optional[QMainWindow] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Settings")
-        self.resize(300, 150)
+        self.resize(400, 200)
         
-        self._setup_ui(current_theme, current_font)
+        # Store initial values
+        self.current_theme = current_theme
+        self.current_font = current_font
+        self.selected_font = None
         
-    def _setup_ui(self, current_theme: str, current_font: QFont) -> None:
-        """Set up the UI components of the settings dialog."""
+        # Create main layout
         layout = QVBoxLayout()
-        self._setup_theme_selection(layout, current_theme)
-        self._setup_font_selection(layout, current_font)
-        self._setup_buttons(layout)
-        self.setLayout(layout)
         
-    def _setup_theme_selection(self, layout: QVBoxLayout, current_theme: str) -> None:
-        theme_layout = QHBoxLayout()
-        theme_label = QLabel("Theme:")
+        # Theme selection
+        theme_group = QGroupBox("Theme")
+        theme_layout = QVBoxLayout()
+        
+        theme_row = QHBoxLayout()
+        theme_label = QLabel("Current Theme:")
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Light", "Dark"])
-        self.theme_combo.setCurrentText(current_theme)
-        theme_layout.addWidget(theme_label)
-        theme_layout.addWidget(self.theme_combo)
-        layout.addLayout(theme_layout)
         
-    def _setup_font_selection(self, layout: QVBoxLayout, current_font: QFont) -> None:
-        font_layout = QHBoxLayout()
-        font_label = QLabel("Font:")
+        # Get available themes
+        themes = sorted(THEME_STYLESHEETS.keys())
+        logger.info(f"Setting up theme dropdown with themes: {themes}")
+        
+        if not themes:
+            themes = ["Light", "Dark"]
+            logger.warning("No themes found, using fallback themes")
+        
+        # Add themes to dropdown
+        self.theme_combo.addItems(themes)
+        
+        # Set current theme if it exists, otherwise use first theme
+        theme_index = self.theme_combo.findText(self.current_theme)
+        if theme_index >= 0:
+            self.theme_combo.setCurrentIndex(theme_index)
+            logger.info(f"Set current theme to: {self.current_theme}")
+        else:
+            logger.warning(f"Current theme {self.current_theme} not found in themes list")
+            if self.theme_combo.count() > 0:
+                self.theme_combo.setCurrentIndex(0)
+                self.current_theme = self.theme_combo.currentText()
+                logger.info(f"Defaulted to first theme: {self.current_theme}")
+        
+        theme_row.addWidget(theme_label)
+        theme_row.addWidget(self.theme_combo)
+        theme_layout.addLayout(theme_row)
+        theme_group.setLayout(theme_layout)
+        layout.addWidget(theme_group)
+        
+        # Font selection
+        font_group = QGroupBox("Font")
+        font_layout = QVBoxLayout()
+        
+        font_row = QHBoxLayout()
+        font_label = QLabel("Current Font:")
+        self.font_display = QLabel(f"{self.current_font.family()} {self.current_font.pointSize()}")
         self.font_button = QPushButton("Choose Font")
-        self.font_display = QLabel(f"{current_font.family()} {current_font.pointSize()}")
-        self.selected_font = current_font
-        
-        font_layout.addWidget(font_label)
-        font_layout.addWidget(self.font_display)
-        font_layout.addWidget(self.font_button)
-        layout.addLayout(font_layout)
-        
         self.font_button.clicked.connect(self.choose_font)
-
-    def _setup_buttons(self, layout: QVBoxLayout) -> None:
+        
+        font_row.addWidget(font_label)
+        font_row.addWidget(self.font_display)
+        font_row.addWidget(self.font_button)
+        font_layout.addLayout(font_row)
+        font_group.setLayout(font_layout)
+        layout.addWidget(font_group)
+        
+        # Add buttons
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        layout.addWidget(button_box)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
-
+        layout.addWidget(button_box)
+        
+        # Set dialog layout
+        self.setLayout(layout)
+    
     def choose_font(self) -> None:
-        font, ok = QFontDialog.getFont(self.selected_font, self, "Select Font")
+        """Open font selection dialog."""
+        font, ok = QFontDialog.getFont(self.current_font, self)
         if ok:
             self.selected_font = font
             self.font_display.setText(f"{font.family()} {font.pointSize()}")
@@ -275,7 +354,7 @@ class LicensesDialog(QDialog):
         else:
             self.license_text.setText(f"License: {font_info['license']}\nNo detailed license text available.")
 
-class HitchhikersGuideToTheGalaxy(MainWindow):
+class HitchhikersGuideToTheGalaxy(QMainWindow):
     """Main application window for the Traveller Campaign Management System.
     
     This class handles the main UI and coordinates between different controllers
@@ -284,32 +363,15 @@ class HitchhikersGuideToTheGalaxy(MainWindow):
     """
     
     def __init__(self) -> None:
+        super().__init__()
         logger.info("Initializing Hitchhiker's Guide to the Galaxy...")
         
         try:
-            # Initialize database first since other components need it
             self._initialize_database()
-            
-            # Initialize settings without restoring geometry
-            self.qsettings = QSettings("YourCompany", "TASJ")
-            self._load_theme_and_font_settings()
-            
-            # Initialize controllers
+            self._load_settings()
             self._initialize_controllers()
-            
-            # Now we can call MainWindow's __init__ with controllers
-            super().__init__(
-                settings_controller=self.settings_controller,
-                theme_controller=self.theme_controller,
-                font_controller=self.font_controller,
-                data_controller=self.data_download_controller
-            )
-            
-            # After MainWindow init, we can restore geometry and set up UI
-            self._restore_window_geometry()
             self._setup_ui()
             self.apply_theme_and_font()
-            
             logger.info("Application initialized successfully")
             
         except Exception as e:
@@ -325,23 +387,26 @@ class HitchhikersGuideToTheGalaxy(MainWindow):
         self.db_instance = TravellerDatabase(DATABASE_TYPE)
         logger.info(f"Database initialized with type: {DATABASE_TYPE}")
         
-    def _load_theme_and_font_settings(self) -> None:
-        """Load theme and font settings without restoring geometry."""
+    def _load_settings(self) -> None:
+        """Load and initialize application settings."""
         config_parser = configparser.ConfigParser()
         config_parser.read('config/.config')
         default_theme = config_parser.get('Display', 'theme', fallback='Light').capitalize()
         
+        self.qsettings = QSettings("YourCompany", "TASJ")
         self.current_theme = self.qsettings.value("theme", default_theme)
-        self.current_font = QFont("Arial", 10)
         
+        # Initialize default font
+        self.current_font = QFont()
         font_string = self.qsettings.value("font", "")
         if font_string:
             self.current_font.fromString(font_string)
+        else:
+            # Set default font properties if no saved font
+            self.current_font.setFamily("Arial")
+            self.current_font.setPointSize(10)
 
-        logger.info(f"Settings loaded - Theme: {self.current_theme}")
-        
-    def _restore_window_geometry(self) -> None:
-        """Restore window geometry from settings."""
+        # Restore window geometry
         geometry = self.qsettings.value("geometry")
         if geometry:
             self.restoreGeometry(geometry)
@@ -350,6 +415,8 @@ class HitchhikersGuideToTheGalaxy(MainWindow):
             self.resize(1024, 768)
             self.center_window()
             
+        logger.info(f"Settings loaded - Theme: {self.current_theme}")
+
     def center_window(self):
         """Center the window on the screen."""
         frame = self.frameGeometry()
@@ -365,9 +432,7 @@ class HitchhikersGuideToTheGalaxy(MainWindow):
 
     def _initialize_controllers(self) -> None:
         """Initialize application controllers."""
-        self.settings_controller = SettingsController()
-        self.font_controller = FontController()  # Create font_controller first
-        self.theme_controller = ThemeController(font_controller=self.font_controller)  # Pass font_controller to theme_controller
+        self.font_controller = FontController()
         self.data_download_controller = DataDownloadController(
             self.db_instance,
             multiprocessing.Queue(),
@@ -476,9 +541,15 @@ class HitchhikersGuideToTheGalaxy(MainWindow):
     def apply_theme_and_font(self) -> None:
         """Apply the current theme and font settings."""
         # Load theme
-        theme_file = f"config/themes/{self.current_theme.lower()}.theme"
-        if not os.path.exists(theme_file):
-            logger.error(f"Theme file not found: {theme_file}")
+        theme_name = self.current_theme
+        logger.info(f"Applying theme: {theme_name}")
+        
+        if theme_name in THEME_STYLESHEETS:
+            stylesheet = THEME_STYLESHEETS[theme_name]
+            logger.debug(f"Using stylesheet:\n{stylesheet}")
+        else:
+            logger.error(f"Theme not found: {theme_name}")
+            logger.debug(f"Available themes: {list(THEME_STYLESHEETS.keys())}")
             return
 
         # Get theme-specific font if no custom font set
@@ -489,19 +560,21 @@ class HitchhikersGuideToTheGalaxy(MainWindow):
                 # Fallback to system font if download failed or was declined
                 self.current_font = QFont("DejaVu Sans", 10)
         
-        # Load and apply theme
-        config = configparser.ConfigParser()
-        config.read(theme_file)
+        # Load and apply theme CSS globally to the application
+        try:
+            app = QApplication.instance()
+            app.setStyleSheet(stylesheet)
+            logger.info(f"Successfully applied theme: {theme_name}")
+        except Exception as e:
+            logger.error(f"Failed to apply theme {theme_name}: {e}")
+            logger.error("Error details:", exc_info=True)
+            return
 
-        # Apply styles from theme file
-        if 'Styles' in config:
-            style_sheet = ""
-            for selector, style in config['Styles'].items():
-                style_sheet += f"{selector} {style}\n"
-            self.setStyleSheet(style_sheet)
-
-        # Apply font
-        self.setFont(self.current_font)
+        # Apply font globally to the application
+        app = QApplication.instance()
+        app.setFont(self.current_font)
+        
+        # Also apply to all existing widgets for immediate effect
         for widget in self.findChildren(QWidget):
             widget.setFont(self.current_font)
             
@@ -559,9 +632,13 @@ class HitchhikersGuideToTheGalaxy(MainWindow):
         dialog = SettingsDialog(self.current_theme, self.current_font, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.current_theme = dialog.theme_combo.currentText()
-            self.current_font = dialog.selected_font
+            # Only update font if a new one was selected
+            if dialog.selected_font:
+                self.current_font = dialog.selected_font
             self.qsettings.setValue("theme", self.current_theme)
-            self.qsettings.setValue("font", self.current_font.toString())
+            # Ensure current_font is valid before saving
+            if self.current_font:
+                self.qsettings.setValue("font", self.current_font.toString())
             self.apply_theme_and_font()
             QMessageBox.information(self, "Settings", "Settings applied successfully.")
 
