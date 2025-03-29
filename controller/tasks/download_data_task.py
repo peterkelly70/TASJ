@@ -157,7 +157,8 @@ def download_data_task(db_type, progress_queue, cancel_event):
             planets = [planet for planet in planets if planet]
 
             sector_planets = 0
-            for planet in planets:
+            progress_queue.put(f"INFO: Starting planet processing loop for sector {sector_name} ({len(planets)} planets)...") 
+            for planet_index, planet in enumerate(planets):
                 if cancel_event.is_set():
                     progress_queue.put("⏹️ Download cancelled by user.")
                     return
@@ -170,9 +171,19 @@ def download_data_task(db_type, progress_queue, cancel_event):
                 planet["sector_id"] = sector_name
 
                 # Upsert the planet record.
-                planet_db.upsert_planet(planet)
+                planet_name = planet.get('name', 'N/A')
+                planet_hex = planet.get('hex', 'N/A')
+                progress_queue.put(f"DEBUG: Upserting planet {planet_index + 1}/{len(planets)}: {planet_name} ({planet_hex})...") 
+                try:
+                    planet_db.upsert_planet(planet)
+                    progress_queue.put(f"DEBUG: Upserted planet {planet_name} ({planet_hex}).") 
+                except Exception as upsert_error:
+                    progress_queue.put(f"ERROR: Failed to upsert planet {planet_name} ({planet_hex}): {upsert_error}") 
+                    # Decide if you want to continue with other planets or stop
+                    # continue 
                 sector_planets += 1
 
+            progress_queue.put(f"INFO: Finished planet processing loop for sector {sector_name}.") 
             progress_queue.put(f"✅ Processed {sector_planets} planets for sector '{sector_name}'.")
             total_planets += sector_planets
 
