@@ -27,6 +27,7 @@ class ConsoleView(QWidget):
         # Create progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setFixedHeight(20)
+        self.progress_bar.setValue(0)
         
         # Create cancel button
         self.cancel_button = QPushButton("Cancel")
@@ -57,3 +58,11 @@ class ConsoleView(QWidget):
     def clear_text(self):
         """Clear the console text."""
         self.text_area.clear()
+        
+    def update_progress(self, progress: int):
+        """Update the progress bar value."""
+        self.progress_bar.setValue(progress)
+        
+    def enable_cancel(self, enabled: bool):
+        """Enable/disable the cancel button."""
+        self.cancel_button.setEnabled(enabled)

@@ -602,10 +602,9 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     def _create_button_handler(self, button_text: str):
         """Create handler for button clicks."""
         def handler():
-            # Hide all other views
+            # Clear all text boxes
             self.upper_text_box.clear()
             self.lower_text_box.clear()
-            self.console_view.hide()
             
             # Show appropriate view based on button
             if button_text == "Sectors":
@@ -629,9 +628,11 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
             elif button_text == "Adventure Hooks":
                 self.adventure_hooks_controller.show_view(self.lower_text_box)
             elif button_text == "Console":
-                self.console_view.show()
-                self.console_view.raise_()  # Bring to front
-                self.console_view.activateWindow()
+                # Show console view in the lower text box
+                self.lower_text_box.setPlainText(self.console_view.text_area.toPlainText())
+                # Show progress bar and cancel button
+                self.lower_text_box.append(f"<p>Progress: {self.console_view.progress_bar.value()}%<p>")
+                self.lower_text_box.append(f"<p>Cancel button: {"Enabled" if self.console_view.cancel_button.isEnabled() else "Disabled"}<p>")
         return handler
 
     def apply_theme_and_font(self) -> None:
