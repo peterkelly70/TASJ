@@ -1,17 +1,14 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QWidget
-from PyQt6.QtCore import Qt, pyqtSignal, QEvent
-from typing import Optional
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout,
+                           QProgressBar, QSizePolicy)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QTextCursor, QFont
 
-class ConsoleView(QDialog):
-    """A dialog window that displays logging output"""
+class ConsoleView(QWidget):
+    """View for the console window."""
     
-    # Signal for when text is appended
-    text_appended = pyqtSignal(str)
-    
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Console")
-        self.setModal(False)  # Allow interaction with main window
         
         # Set up the layout
         self._layout = QVBoxLayout()
@@ -22,59 +19,41 @@ class ConsoleView(QDialog):
         self.text_area.setReadOnly(True)
         self.text_area.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         
-        # Use a monospace font for better log readability
-        font = self.text_area.font()
-        font.setFamily("Monospace")
+        # Use a standard font
+        font = QFont()
+        font.setPointSize(10)  # Smaller font size
         self.text_area.setFont(font)
         
-        self._layout.addWidget(self.text_area)
+        # Create progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setFixedHeight(20)
         
-        # Add clear button
-        self.clear_button = QPushButton("Clear", self)
-        self.clear_button.clicked.connect(self.clear_console)
-        self._layout.addWidget(self.clear_button)
+        # Create cancel button
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setEnabled(False)
+        
+        # Create button layout
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.cancel_button)
+        
+        # Add widgets to layout
+        self._layout.addWidget(self.text_area)
+        self._layout.addWidget(self.progress_bar)
+        self._layout.addLayout(button_layout)
+        
+        # Set size policy
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Set a reasonable default size
         self.resize(600, 400)
         
-        # Install event filter to handle cleanup
-        self.installEventFilter(self)
-    
     def append_text(self, text: str):
-        """Add text to the console and scroll to bottom"""
-        if not hasattr(self, 'text_area') or self.text_area is None:
-            return
-            
-        try:
-            self.text_area.append(text)
-            # Ensure newest text is visible
-            cursor = self.text_area.textCursor()
-            cursor.movePosition(cursor.MoveOperation.End)
-            self.text_area.setTextCursor(cursor)
-            
-            # Emit signal for testing
-            self.text_appended.emit(text)
-        except RuntimeError:
-            # If the widget has been deleted, just return
-            return
-    
-    def clear_console(self):
-        """Clear all text from the console"""
-        if not hasattr(self, 'text_area') or self.text_area is None:
-            return
-            
-        try:
-            self.text_area.clear()
-        except RuntimeError:
-            # If the widget has been deleted, just return
-            return
-    
-    def eventFilter(self, obj, event):
-        """Handle events to ensure proper cleanup"""
-        if event.type() == QEvent.Type.Close:
-            # When the dialog is closed, ensure we don't have any dangling references
-            self.text_area = None
-            self.clear_button = None
-            self._layout = None
-            return True
-        return super().eventFilter(obj, event)
+        """Append text to the console."""
+        self.text_area.moveCursor(QTextCursor.MoveOperation.End)
+        self.text_area.insertPlainText(text)
+        self.text_area.moveCursor(QTextCursor.MoveOperation.End)
+        
+    def clear_text(self):
+        """Clear the console text."""
+        self.text_area.clear()

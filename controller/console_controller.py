@@ -1,9 +1,10 @@
 import logging
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout, QFileDialog, QMessageBox
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, QObject
 from view.console_view import ConsoleView
+import sys
 
-class ConsoleController:
+class ConsoleController(QObject):
     """Controller for managing the console view and logging."""
     
     # Signal for when the console is shown
@@ -11,10 +12,12 @@ class ConsoleController:
     
     def __init__(self, main_window):
         """Initialize the console controller."""
+        super().__init__()
         self.main_window = main_window
         self.console_view = ConsoleView(self.main_window)
         self.console_view.hide()
         self.setup_logging()
+        self.setup_console_output()
         
         # Log initial message
         logging.info("Console initialized and ready")
@@ -39,6 +42,29 @@ class ConsoleController:
         
         # Add handler to the root logger
         logging.getLogger().addHandler(handler)
+
+    def setup_console_output(self):
+        """Set up console output redirection."""
+        class ConsoleOutput:
+            def __init__(self, console_view):
+                self.console_view = console_view
+                self.stdout = sys.stdout
+                self.stderr = sys.stderr
+
+            def write(self, text):
+                if self.console_view:
+                    self.console_view.append_text(text)
+                self.stdout.write(text)
+
+            def flush(self):
+                self.stdout.flush()
+
+            def __getattr__(self, attr):
+                return getattr(self.stdout, attr)
+
+        # Redirect stdout and stderr
+        sys.stdout = ConsoleOutput(self.console_view)
+        sys.stderr = ConsoleOutput(self.console_view)
 
     def show_console(self):
         """Show the console view."""

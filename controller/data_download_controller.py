@@ -4,80 +4,75 @@ from PyQt5.QtCore import QTimer
 import multiprocessing
 from controller.tasks.download_data_task import download_data_task
 from dotenv import load_dotenv
+import logging
+import time
+from queue import Empty
 
 class DataDownloadController:
     def __init__(self, db_instance, progress_queue, cancel_event):
-        """Initialize the data download controller with a database instance,
-        a progress queue, and a cancel event.
-        """
+        """Initialize the data download controller."""
         self.db_instance = db_instance
-        self.progress_queue = progress_queue
+        self.queue = progress_queue
         self.cancel_event = cancel_event
-        self.process = None
-        self.progress_timer = None
         self.progress_bar = None
         self.cancel_button = None
         self.console_view = None  # Will be set later
-    
+        self.current_task = None
+
     def set_console_view(self, console_view):
-        """Set the console view for displaying download messages."""
+        """Set the console view for progress and cancel functionality."""
         self.console_view = console_view
-    
-    def start_download(self, view_widget, progress_bar, cancel_button):
-        """Starts the data download in a background process."""
-        if self.process and self.process.is_alive():
-            self.console_view.append_text("⚠️ Download already in progress.")
-            return
-        
-        # Store UI elements for progress updates.
-        self.progress_bar = progress_bar
-        self.cancel_button = cancel_button
+        self.progress_bar = console_view.progress_bar
+        self.cancel_button = console_view.cancel_button
+        self.cancel_button.clicked.connect(self.cancel_event.set)
 
-        # Clear the cancel event before starting.
+    def start_download(self):
+        """Start the data download process."""
+        if self.progress_bar:
+            self.progress_bar.setValue(0)
+            self.progress_bar.setMaximum(100)
+        if self.cancel_button:
+            self.cancel_button.setEnabled(True)
+
+        # Clear the cancel event
         self.cancel_event.clear()
-        self.process = multiprocessing.Process(
+
+        # Start the download process in a separate process
+        process = multiprocessing.Process(
             target=download_data_task,
-            args=(self.db_instance.db_type, self.progress_queue, self.cancel_event)
+            args=(self.db_instance.db_type, self.queue, self.cancel_event)
         )
-        self.process.start()
-        self.console_view.append_text("🚀 Download started.")
-        self._monitor_progress(view_widget)
+        process.start()
 
-    def cancel_download(self, view_widget):
-        """Cancels the download process."""
-        if self.process and self.process.is_alive():
-            self.cancel_event.set()
-            self.process.join()
-            self.console_view.append_text("⏹️ Download cancelled.")
-        else:
-            self.console_view.append_text("⚠️ No active download to cancel.")
+        # Start monitoring the queue
+        self._monitor_queue()
 
-    def _monitor_progress(self, view_widget):
-        """
-        Monitors progress messages from the progress_queue and updates the UI accordingly.
-        Uses a QTimer to poll for new messages every 500ms.
-        """
-        def update_progress():
-            message = ""  # Initialize to empty string.
-            while not self.progress_queue.empty():
-                message = self.progress_queue.get()
-                self.console_view.append_text(message)
+    def cancel_download(self):
+        """Cancel the ongoing download process."""
+        if self.cancel_button:
+            self.cancel_button.setEnabled(False)
+        self.cancel_event.set()
 
-                # Example: "Progress: 3/10 sectors processed."
-                if "Progress:" in message:
-                    try:
-                        progress_text = message.split(":")[1].strip().split("/")
-                        current, total = int(progress_text[0]), int(progress_text[1])
-                        percentage = int((current / total) * 100)
-                        self.progress_bar.setValue(percentage)
-                    except ValueError:
-                        pass  # Ignore malformed messages
+    def update_progress(self, progress: int, message: str):
+        """Update the progress bar and status message."""
+        if self.progress_bar:
+            self.progress_bar.setValue(progress)
+        logging.info(message)
+        self.console_view.append_text(message)
 
-            if "Download complete" in message:
-                self.progress_timer.stop()
-                self.progress_bar.setValue(100)
-                self.cancel_button.setEnabled(False)
+    def _monitor_queue(self):
+        """Monitor the queue for progress updates."""
+        while not self.cancel_event.is_set():
+            try:
+                progress, message = self.queue.get_nowait()
+                self.update_progress(progress, message)
+            except Empty:
+                time.sleep(0.1)
 
-        self.progress_timer = QTimer()
-        self.progress_timer.timeout.connect(update_progress)
-        self.progress_timer.start(500)
+        # Final update
+        if not self.queue.empty():
+            progress, message = self.queue.get()
+            self.update_progress(progress, message)
+
+        if self.cancel_button:
+            self.cancel_button.setEnabled(False)
