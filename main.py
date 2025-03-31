@@ -567,17 +567,18 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         # Add button container to top layout
         top_layout.addWidget(self.button_container)
         
-        # Create text boxes
-        self.upper_text_box = QTextEdit()
-        self.lower_text_box = QTextEdit()
+        # Create main view box
+        self.main_view = QTextEdit()
+        self.main_view.setReadOnly(True)
+        self.main_view.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         
-        # Set text box properties
-        self.upper_text_box.setReadOnly(True)
-        self.lower_text_box.setReadOnly(True)
+        # Set main view properties
+        font = QFont()
+        font.setPointSize(10)  # Smaller font size
+        self.main_view.setFont(font)
         
-        # Add text boxes to bottom layout
-        bottom_layout.addWidget(self.upper_text_box)
-        bottom_layout.addWidget(self.lower_text_box)
+        # Add main view to bottom layout
+        bottom_layout.addWidget(self.main_view)
         
         # Add top and bottom layouts to main layout
         main_layout.addLayout(top_layout)
@@ -602,37 +603,33 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     def _create_button_handler(self, button_text: str):
         """Create handler for button clicks."""
         def handler():
-            # Clear all text boxes
-            self.upper_text_box.clear()
-            self.lower_text_box.clear()
+            # Clear main view
+            self.main_view.clear()
             
             # Show appropriate view based on button
             if button_text == "Sectors":
-                self.sectors_controller.show_view(self.lower_text_box)
+                self.sectors_controller.show_view(self.main_view)
             elif button_text == "Planets":
-                self.planets_controller.show_view(self.lower_text_box)
+                self.planets_controller.show_view(self.main_view)
             elif button_text == "Characters":
-                self.people_controller.show_view(self.lower_text_box)
+                self.people_controller.show_view(self.main_view)
             elif button_text == "Lifeforms":
-                self.lifeforms_controller.show_view(self.lower_text_box)
+                self.lifeforms_controller.show_view(self.main_view)
             elif button_text == "Ships":
-                self.ships_controller.show_view(self.lower_text_box)
+                self.ships_controller.show_view(self.main_view)
             elif button_text == "Vehicle":
-                self.vehicle_controller.show_view(self.lower_text_box)
+                self.vehicle_controller.show_view(self.main_view)
             elif button_text == "Events":
-                self.events_controller.show_view(self.lower_text_box)
+                self.events_controller.show_view(self.main_view)
             elif button_text == "Technology":
-                self.technology_controller.show_view(self.lower_text_box)
+                self.technology_controller.show_view(self.main_view)
             elif button_text == "Organizations":
-                self.organizations_controller.show_view(self.lower_text_box)
+                self.organizations_controller.show_view(self.main_view)
             elif button_text == "Adventure Hooks":
-                self.adventure_hooks_controller.show_view(self.lower_text_box)
+                self.adventure_hooks_controller.show_view(self.main_view)
             elif button_text == "Console":
-                # Show console view in the lower text box
-                self.lower_text_box.setPlainText(self.console_view.text_area.toPlainText())
-                # Show progress bar and cancel button
-                self.lower_text_box.append(f"<p>Progress: {self.console_view.progress_bar.value()}%<p>")
-                self.lower_text_box.append(f"<p>Cancel button: {"Enabled" if self.console_view.cancel_button.isEnabled() else "Disabled"}<p>")
+                # Show console view in the main view
+                self.main_view.setPlainText(self.console_view.text_area.toPlainText())
         return handler
 
     def apply_theme_and_font(self) -> None:
@@ -828,10 +825,9 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
             button.setMinimumSize(text_width + 40, text_height + 20)
             
         # Update text box fonts
-        text_box_font = self.upper_text_box.font()
+        text_box_font = self.main_view.font()
         text_box_font.setPointSize(new_font_size)
-        self.upper_text_box.setFont(text_box_font)
-        self.lower_text_box.setFont(text_box_font)
+        self.main_view.setFont(text_box_font)
         
         # Update flow layout spacing if container exists
         try:
