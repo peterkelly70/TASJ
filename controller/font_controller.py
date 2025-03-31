@@ -12,8 +12,28 @@ logger = logging.getLogger(__name__)
 class FontController:
     """Controller for managing fonts and related UI interactions."""
     
-    def __init__(self) -> None:
+    def __init__(self, db_instance):
+        self.db = db_instance
         self.model = FontModel()
+        
+    def show_view(self, display_widget):
+        """Show the font view with available fonts."""
+        display_widget.setText("Font Management\n\n")
+        
+        # Get installed fonts
+        installed_fonts = self.get_installed_app_font_families()
+        if installed_fonts:
+            display_widget.append("Installed Fonts:\n")
+            for font in installed_fonts:
+                display_widget.append(f"- {font}")
+            display_widget.append("\n")
+        
+        # Get available fonts
+        available_fonts = self.get_available_uninstalled_fonts()
+        if available_fonts:
+            display_widget.append("Available Fonts:\n")
+            for font_id, info in available_fonts.items():
+                display_widget.append(f"- {info['name']}")
         
     def ensure_font_available(self, font_id: str, parent: Optional[QWidget] = None) -> Optional[QFont]:
         """Ensure a font is available, downloading if necessary and approved."""

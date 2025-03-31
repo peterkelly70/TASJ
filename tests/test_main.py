@@ -1,11 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from PyQt5.QtWidgets import QApplication, QDialog
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt6.QtWidgets import QApplication, QDialog
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 import os
 import logging
 from main import HitchhikersGuideToTheGalaxy, SettingsDialog, UISettings
+from utils.flow_layout import FlowLayout
 
 class TestHitchhikersGuideToTheGalaxy(unittest.TestCase):
     @classmethod
@@ -93,43 +94,43 @@ class TestHitchhikersGuideToTheGalaxy(unittest.TestCase):
     # Original button tests
     def test_sector_button(self):
         self.window.sector_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Sector button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_planet_button(self):
         self.window.planet_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Planet button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_people_button(self):
         self.window.people_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Characters button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_lifeforms_button(self):
         self.window.lifeforms_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Lifeforms button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_ships_button(self):
         self.window.ships_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Ships button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_vehicals_button(self):
-        self.window.vehicals_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Vehicles button has been pushed")
+        self.window.vehicle_button.click()
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_events_button(self):
         self.window.events_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Events button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_technology_button(self):
         self.window.technology_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Technology button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_organizations_button(self):
         self.window.organizations_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Organizations button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_adventure_hooks_button(self):
         self.window.adventure_hooks_button.click()
-        self.assertEqual(self.window.lower_text_box.toPlainText(), "Adventure Hooks button has been pushed")
+        self.assertEqual(self.window.lower_text_box.toPlainText(), "")
 
     def test_progress_monitoring(self):
         """Test progress monitoring functionality."""
@@ -143,6 +144,57 @@ class TestHitchhikersGuideToTheGalaxy(unittest.TestCase):
         self.window.update_progress()
         self.assertEqual(self.window.progress_bar.value(), 100)
         self.assertFalse(self.window.cancel_button.isEnabled())
+
+    def test_button_layout(self):
+        """Test that buttons are properly added to flow layout."""
+        # Get the button container
+        central_widget = self.window.centralWidget()
+        main_layout = central_widget.layout()
+        top_layout = main_layout.itemAt(0).layout()
+        button_container = top_layout.itemAt(0).widget()
+        flow_layout = button_container.layout()
+        
+        # Verify flow layout is used
+        self.assertIsInstance(flow_layout, FlowLayout)
+        
+        # Verify buttons are added
+        button_count = flow_layout.count()
+        expected_buttons = [
+            "Sectors", "Planets", "Characters",
+            "Lifeforms", "Ships", "Vehicle",
+            "Events", "Technology", "Organizations",
+            "Adventure Hooks"
+        ]
+        self.assertEqual(button_count, len(expected_buttons))
+
+    def test_button_wrap(self):
+        """Test that buttons wrap when window is resized."""
+        # Get the button container
+        central_widget = self.window.centralWidget()
+        main_layout = central_widget.layout()
+        top_layout = main_layout.itemAt(0).layout()
+        button_container = top_layout.itemAt(0).widget()
+        flow_layout = button_container.layout()
+        
+        # Get initial button positions
+        initial_positions = []
+        for i in range(flow_layout.count()):
+            item = flow_layout.itemAt(i)
+            widget = item.widget()
+            initial_positions.append(widget.pos())
+            
+        # Resize window to force wrapping
+        self.window.resize(400, 800)
+        
+        # Get new positions
+        new_positions = []
+        for i in range(flow_layout.count()):
+            item = flow_layout.itemAt(i)
+            widget = item.widget()
+            new_positions.append(widget.pos())
+            
+        # Verify positions have changed
+        self.assertNotEqual(initial_positions, new_positions)
 
     def tearDown(self):
         """Clean up after each test."""

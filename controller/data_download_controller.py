@@ -17,11 +17,16 @@ class DataDownloadController:
         self.progress_timer = None
         self.progress_bar = None
         self.cancel_button = None
+        self.console_view = None  # Will be set later
+    
+    def set_console_view(self, console_view):
+        """Set the console view for displaying download messages."""
+        self.console_view = console_view
     
     def start_download(self, view_widget, progress_bar, cancel_button):
         """Starts the data download in a background process."""
         if self.process and self.process.is_alive():
-            view_widget.append("⚠️ Download already in progress.")
+            self.console_view.append_text("⚠️ Download already in progress.")
             return
         
         # Store UI elements for progress updates.
@@ -35,7 +40,7 @@ class DataDownloadController:
             args=(self.db_instance.db_type, self.progress_queue, self.cancel_event)
         )
         self.process.start()
-        view_widget.append("🚀 Download started.")
+        self.console_view.append_text("🚀 Download started.")
         self._monitor_progress(view_widget)
 
     def cancel_download(self, view_widget):
@@ -43,9 +48,9 @@ class DataDownloadController:
         if self.process and self.process.is_alive():
             self.cancel_event.set()
             self.process.join()
-            view_widget.append("⏹️ Download cancelled.")
+            self.console_view.append_text("⏹️ Download cancelled.")
         else:
-            view_widget.append("⚠️ No active download to cancel.")
+            self.console_view.append_text("⚠️ No active download to cancel.")
 
     def _monitor_progress(self, view_widget):
         """
@@ -56,7 +61,7 @@ class DataDownloadController:
             message = ""  # Initialize to empty string.
             while not self.progress_queue.empty():
                 message = self.progress_queue.get()
-                view_widget.append(message)
+                self.console_view.append_text(message)
 
                 # Example: "Progress: 3/10 sectors processed."
                 if "Progress:" in message:

@@ -2,10 +2,11 @@ from PyQt6.QtWidgets import (
     QMainWindow, QApplication, QDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QProgressBar, QMenuBar, QTabWidget,
     QTextEdit, QDialogButtonBox, QWidget, QFontDialog, QMessageBox, QMenu,
-    QListWidget, QGroupBox, QFormLayout, QListWidgetItem
+    QListWidget, QGroupBox, QFormLayout, QListWidgetItem, QSizePolicy
 )
 from PyQt6.QtCore import QSettings, Qt, QTimer
 from PyQt6.QtGui import QFont, QAction, QFontMetrics
+from utils.flow_layout import FlowLayout
 import sys
 import os
 import configparser
@@ -21,8 +22,19 @@ from pathlib import Path
 from model.traveller_database import TravellerDatabase
 from model.migrations import run_migrations
 from controller.data_download_controller import DataDownloadController
-from controller.font_controller import FontController
-from font_manager import FontManager
+from controller.console_controller import ConsoleController
+from controller.theme_controller import ThemeController
+from controller.sectors_controller import SectorController
+from controller.planets_controller import PlanetController
+from controller.people_controller import PeopleController
+from controller.lifeforms_controller import LifeformsController
+from controller.ships_controller import ShipsController
+from controller.vehicle_controller import VehicleController
+from controller.events_controller import EventsController
+from controller.technology_controller import TechnologyController
+from controller.organizations_controller import OrganizationsController
+from controller.adventure_hooks_controller import AdventureHooksController
+from view.console_view import ConsoleView
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -201,23 +213,6 @@ class SettingsDialog(QDialog):
         theme_group.setLayout(theme_layout)
         layout.addWidget(theme_group)
         
-        # Font selection
-        font_group = QGroupBox("Font")
-        font_layout = QVBoxLayout()
-        
-        font_row = QHBoxLayout()
-        font_label = QLabel("Current Font:")
-        self.font_display = QLabel(f"{self.current_font.family()} {self.current_font.pointSize()}")
-        self.font_button = QPushButton("Choose Font")
-        self.font_button.clicked.connect(self.choose_font)
-        
-        font_row.addWidget(font_label)
-        font_row.addWidget(self.font_display)
-        font_row.addWidget(self.font_button)
-        font_layout.addLayout(font_row)
-        font_group.setLayout(font_layout)
-        layout.addWidget(font_group)
-        
         # Add buttons
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(self.accept)
@@ -363,16 +358,38 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     """
     
     def __init__(self) -> None:
+        """Initialize the main window."""
         super().__init__()
+        
+        # Initialize console controller first to capture all logging
+        self.console_controller = ConsoleController(self)
+        
+        # Initialize application
+        self._initialize_app()
+        
+        # Set up UI
+        self._setup_ui()
+        
+        # Initialize controllers
+        self._initialize_controllers()
+        
+        # Apply theme and font
+        self.apply_theme_and_font()
+        
+        # Show window
+        self.show()
+        
+        # Log initialization
+        logging.info("Application initialized successfully")
+
+    def _initialize_app(self) -> None:
+        """Initialize the application."""
         logger.info("Initializing Hitchhiker's Guide to the Galaxy...")
         
         try:
             self._initialize_database()
             self._load_settings()
-            self._initialize_controllers()
-            self._setup_ui()
-            self.apply_theme_and_font()
-            logger.info("Application initialized successfully")
+            logger.info(f"Settings loaded - Theme: {self.current_theme}")
             
         except Exception as e:
             logger.error(f"Failed to initialize application: {str(e)}", exc_info=True)
@@ -415,8 +432,6 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
             self.resize(1024, 768)
             self.center_window()
             
-        logger.info(f"Settings loaded - Theme: {self.current_theme}")
-
     def center_window(self):
         """Center the window on the screen."""
         frame = self.frameGeometry()
@@ -432,12 +447,32 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
 
     def _initialize_controllers(self) -> None:
         """Initialize application controllers."""
-        self.font_controller = FontController()
+        # Initialize console controller first
+        self.console_controller = ConsoleController(self)
+        
+        # Initialize controllers
+        self.sectors_controller = SectorController(self.db_instance)
+        self.planets_controller = PlanetController(self.db_instance)
+        self.people_controller = PeopleController(self.db_instance)
+        self.lifeforms_controller = LifeformsController(self.db_instance)
+        self.ships_controller = ShipsController(self.db_instance)
+        self.vehicle_controller = VehicleController(self.db_instance)
+        self.events_controller = EventsController(self.db_instance)
+        self.technology_controller = TechnologyController(self.db_instance)
+        self.organizations_controller = OrganizationsController(self.db_instance)
+        self.adventure_hooks_controller = AdventureHooksController(self.db_instance)
+        
+        # Initialize data download controller
         self.data_download_controller = DataDownloadController(
             self.db_instance,
             multiprocessing.Queue(),
             multiprocessing.Event()
         )
+        # Set the console view for data download controller
+        self.data_download_controller.set_console_view(self.console_controller.console_view)
+        
+        # Initialize theme controller
+        self.theme_controller = ThemeController(self)
         
     def _setup_ui(self) -> None:
         """Set up the main UI components."""
@@ -446,23 +481,24 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         # Create central widget and main layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
+        main_layout = QVBoxLayout()
         
         # Create menu bar
         menubar = self.menuBar()
         
         # File menu
-        file_menu = menubar.addMenu("File")
+        file_menu = menubar.addMenu("&File")
+        
+        # Console action
+        console_action = QAction("Console", self)
+        console_action.setShortcut("Ctrl+L")
+        console_action.triggered.connect(self.console_controller.show_console)
+        file_menu.addAction(console_action)
         
         # Settings action
         settings_action = QAction("Settings", self)
         settings_action.triggered.connect(self.open_settings)
         file_menu.addAction(settings_action)
-        
-        # Licenses action
-        licenses_action = QAction("Licenses", self)
-        licenses_action.triggered.connect(self.open_licenses)
-        file_menu.addAction(licenses_action)
         
         # Add separator before exit
         file_menu.addSeparator()
@@ -489,8 +525,13 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
 
         database_menu.aboutToShow.connect(self._adjust_menu_width) 
         
-        # Create main interface
-        button_layout = QHBoxLayout()
+        # Create top and bottom layouts
+        top_layout = QHBoxLayout()
+        bottom_layout = QVBoxLayout()
+        
+        # Create button container with flow layout
+        self.button_container = QWidget()
+        button_flow_layout = FlowLayout(self.button_container)
         
         # Create buttons
         self.sector_button = QPushButton("Sectors")
@@ -498,46 +539,125 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.people_button = QPushButton("Characters")
         self.lifeforms_button = QPushButton("Lifeforms")
         self.ships_button = QPushButton("Ships")
-        self.vehicals_button = QPushButton("Vehicles")
+        self.vehicle_button = QPushButton("Vehicle")
         self.events_button = QPushButton("Events")
         self.technology_button = QPushButton("Technology")
         self.organizations_button = QPushButton("Organizations")
         self.adventure_hooks_button = QPushButton("Adventure Hooks")
         
-        # Add buttons to layout
+        # Add buttons to flow layout
         buttons = [
             self.sector_button, self.planet_button, self.people_button,
-            self.lifeforms_button, self.ships_button, self.vehicals_button,
+            self.lifeforms_button, self.ships_button, self.vehicle_button,
             self.events_button, self.technology_button, self.organizations_button,
             self.adventure_hooks_button
         ]
         
+        # Configure button properties
         for button in buttons:
-            button_layout.addWidget(button)
-            button.clicked.connect(self._create_button_handler(button.text()))
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            button_flow_layout.addWidget(button)
+            handler = self._create_button_handler(button.text())
+            button.clicked.connect(handler)
         
-        main_layout.addLayout(button_layout)
+        # Add button container to top layout
+        top_layout.addWidget(self.button_container)
         
-        # Create text box for output
+        # Create text boxes
+        self.upper_text_box = QTextEdit()
         self.lower_text_box = QTextEdit()
+        
+        # Set text box properties
+        self.upper_text_box.setReadOnly(True)
         self.lower_text_box.setReadOnly(True)
-        main_layout.addWidget(self.lower_text_box)
+        
+        # Add text boxes to bottom layout
+        bottom_layout.addWidget(self.upper_text_box)
+        bottom_layout.addWidget(self.lower_text_box)
         
         # Create progress bar
         self.progress_bar = QProgressBar()
-        main_layout.addWidget(self.progress_bar)
+        bottom_layout.addWidget(self.progress_bar)
         
         # Create cancel button (initially disabled)
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setEnabled(False)
         self.cancel_button.clicked.connect(self.cancel_download)
-        main_layout.addWidget(self.cancel_button)
+        bottom_layout.addWidget(self.cancel_button)
         
-    def _create_button_handler(self, button_text: str):
-        def handler():
-            self.lower_text_box.append(f"{button_text} button has been pushed")
-        return handler
+        # Add top and bottom layouts to main layout
+        main_layout.addLayout(top_layout)
+        main_layout.addLayout(bottom_layout)
         
+        # Set main layout
+        central_widget.setLayout(main_layout)
+        
+        # Set window size policy
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Set minimum size
+        self.setMinimumSize(800, 600)
+        
+        # Connect resize event to update button sizes
+        self.resizeEvent = self._update_button_sizes
+        
+    def _update_button_sizes(self, event):
+        """Update button sizes when window is resized."""
+        # Get current window size
+        width = self.width()
+        height = self.height()
+        
+        # Calculate new font size based on window size
+        base_font_size = 12  # Base font size
+        scale_factor = min(width, height) / 800  # Scale based on smallest dimension
+        new_font_size = int(base_font_size * scale_factor)
+        
+        # Update all button fonts
+        for button in [
+            self.sector_button, self.planet_button, self.people_button,
+            self.lifeforms_button, self.ships_button, self.vehicle_button,
+            self.events_button, self.technology_button, self.organizations_button,
+            self.adventure_hooks_button
+        ]:
+            font = button.font()
+            font.setPointSize(new_font_size)
+            button.setFont(font)
+            
+            # Update button size policy to maintain proper scaling
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            
+            # Update minimum size based on font size
+            metrics = QFontMetrics(font)
+            text_width = metrics.horizontalAdvance(button.text())
+            text_height = metrics.height()
+            button.setMinimumSize(text_width + 40, text_height + 20)
+            
+        # Update text box fonts
+        text_box_font = self.upper_text_box.font()
+        text_box_font.setPointSize(new_font_size)
+        self.upper_text_box.setFont(text_box_font)
+        self.lower_text_box.setFont(text_box_font)
+        
+        # Update progress bar height
+        self.progress_bar.setFixedHeight(new_font_size * 2)
+        
+        # Update cancel button
+        cancel_font = self.cancel_button.font()
+        cancel_font.setPointSize(new_font_size)
+        self.cancel_button.setFont(cancel_font)
+        
+        # Update flow layout spacing if container exists
+        try:
+            if self.button_container:
+                flow_layout = self.button_container.layout()
+                if flow_layout:
+                    flow_layout.setSpacing(new_font_size // 2)
+        except Exception as e:
+            logger.warning(f"Failed to update flow layout spacing: {e}")
+            
+        # Call original resize event
+        super().resizeEvent(event)
+
     def apply_theme_and_font(self) -> None:
         """Apply the current theme and font settings."""
         # Load theme
@@ -555,10 +675,10 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         # Get theme-specific font if no custom font set
         if not self.current_font:
             theme_font_id = self.current_theme.lower()
-            self.current_font = self.font_controller.ensure_font_available(theme_font_id, self)
-            if not self.current_font:
-                # Fallback to system font if download failed or was declined
-                self.current_font = QFont("DejaVu Sans", 10)
+            # self.current_font = self.font_controller.ensure_font_available(theme_font_id, self)
+            # if not self.current_font:
+            #     # Fallback to system font if download failed or was declined
+            #     self.current_font = QFont("DejaVu Sans", 10)
         
         # Load and apply theme CSS globally to the application
         try:
@@ -704,7 +824,31 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
 
     def open_licenses(self) -> None:
         """Opens the licenses dialog."""
-        self.font_controller.show_licenses(self)
+        # self.font_controller.show_licenses(self)
+
+    def _create_button_handler(self, button_text: str):
+        def handler():
+            if button_text == "Sectors":
+                self.sectors_controller.show_view(self.lower_text_box)
+            elif button_text == "Planets":
+                self.planets_controller.show_view(self.lower_text_box)
+            elif button_text == "Characters":
+                self.people_controller.show_view(self.lower_text_box)
+            elif button_text == "Lifeforms":
+                self.lifeforms_controller.show_view(self.lower_text_box)
+            elif button_text == "Ships":
+                self.ships_controller.show_view(self.lower_text_box)
+            elif button_text == "Vehicle":
+                self.vehicle_controller.show_view(self.lower_text_box)
+            elif button_text == "Events":
+                self.events_controller.show_view(self.lower_text_box)
+            elif button_text == "Technology":
+                self.technology_controller.show_view(self.lower_text_box)
+            elif button_text == "Organizations":
+                self.organizations_controller.show_view(self.lower_text_box)
+            elif button_text == "Adventure Hooks":
+                self.adventure_hooks_controller.show_view(self.lower_text_box)
+        return handler
 
 if __name__ == "__main__":
     logger.info("Starting application...")
