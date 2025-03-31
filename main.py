@@ -381,6 +381,9 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         
         # Log initialization
         logging.info("Application initialized successfully")
+        
+        # Initialize data download controller with console view
+        self.data_download_controller.set_console_view(self.console_controller.console_view)
 
     def _initialize_app(self) -> None:
         """Initialize the application."""
@@ -463,17 +466,17 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.adventure_hooks_controller = AdventureHooksController(self.db_instance)
         
         # Initialize data download controller
+        self.data_download_queue = multiprocessing.Queue()
+        self.data_download_cancel_event = multiprocessing.Event()
         self.data_download_controller = DataDownloadController(
             self.db_instance,
-            multiprocessing.Queue(),
-            multiprocessing.Event()
+            self.data_download_queue,
+            self.data_download_cancel_event
         )
-        # Set the console view for data download controller
-        self.data_download_controller.set_console_view(self.console_controller.console_view)
         
-        # Initialize theme controller
-        self.theme_controller = ThemeController(self)
-        
+        # Connect progress monitoring
+        self._setup_progress_monitoring()
+
     def _setup_ui(self) -> None:
         """Set up the main UI components."""
         self.setWindowTitle("Hitchhiker's Guide to the Galaxy")
@@ -544,13 +547,14 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.technology_button = QPushButton("Technology")
         self.organizations_button = QPushButton("Organizations")
         self.adventure_hooks_button = QPushButton("Adventure Hooks")
+        self.console_button = QPushButton("Console")
         
         # Add buttons to flow layout
         buttons = [
             self.sector_button, self.planet_button, self.people_button,
             self.lifeforms_button, self.ships_button, self.vehicle_button,
             self.events_button, self.technology_button, self.organizations_button,
-            self.adventure_hooks_button
+            self.adventure_hooks_button, self.console_button
         ]
         
         # Configure button properties
@@ -575,16 +579,6 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         bottom_layout.addWidget(self.upper_text_box)
         bottom_layout.addWidget(self.lower_text_box)
         
-        # Create progress bar
-        self.progress_bar = QProgressBar()
-        bottom_layout.addWidget(self.progress_bar)
-        
-        # Create cancel button (initially disabled)
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.setEnabled(False)
-        self.cancel_button.clicked.connect(self.cancel_download)
-        bottom_layout.addWidget(self.cancel_button)
-        
         # Add top and bottom layouts to main layout
         main_layout.addLayout(top_layout)
         main_layout.addLayout(bottom_layout)
@@ -601,62 +595,44 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         # Connect resize event to update button sizes
         self.resizeEvent = self._update_button_sizes
         
-    def _update_button_sizes(self, event):
-        """Update button sizes when window is resized."""
-        # Get current window size
-        width = self.width()
-        height = self.height()
+        # Initialize console view
+        self.console_view = self.console_controller.console_view
+        self.console_view.hide()  # Start hidden
         
-        # Calculate new font size based on window size
-        base_font_size = 12  # Base font size
-        scale_factor = min(width, height) / 800  # Scale based on smallest dimension
-        new_font_size = int(base_font_size * scale_factor)
-        
-        # Update all button fonts
-        for button in [
-            self.sector_button, self.planet_button, self.people_button,
-            self.lifeforms_button, self.ships_button, self.vehicle_button,
-            self.events_button, self.technology_button, self.organizations_button,
-            self.adventure_hooks_button
-        ]:
-            font = button.font()
-            font.setPointSize(new_font_size)
-            button.setFont(font)
+    def _create_button_handler(self, button_text: str):
+        """Create handler for button clicks."""
+        def handler():
+            # Hide all other views
+            self.upper_text_box.clear()
+            self.lower_text_box.clear()
+            self.console_view.hide()
             
-            # Update button size policy to maintain proper scaling
-            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-            
-            # Update minimum size based on font size
-            metrics = QFontMetrics(font)
-            text_width = metrics.horizontalAdvance(button.text())
-            text_height = metrics.height()
-            button.setMinimumSize(text_width + 40, text_height + 20)
-            
-        # Update text box fonts
-        text_box_font = self.upper_text_box.font()
-        text_box_font.setPointSize(new_font_size)
-        self.upper_text_box.setFont(text_box_font)
-        self.lower_text_box.setFont(text_box_font)
-        
-        # Update progress bar height
-        self.progress_bar.setFixedHeight(new_font_size * 2)
-        
-        # Update cancel button
-        cancel_font = self.cancel_button.font()
-        cancel_font.setPointSize(new_font_size)
-        self.cancel_button.setFont(cancel_font)
-        
-        # Update flow layout spacing if container exists
-        try:
-            if self.button_container:
-                flow_layout = self.button_container.layout()
-                if flow_layout:
-                    flow_layout.setSpacing(new_font_size // 2)
-        except Exception as e:
-            logger.warning(f"Failed to update flow layout spacing: {e}")
-            
-        # Call original resize event
-        super().resizeEvent(event)
+            # Show appropriate view based on button
+            if button_text == "Sectors":
+                self.sectors_controller.show_view(self.lower_text_box)
+            elif button_text == "Planets":
+                self.planets_controller.show_view(self.lower_text_box)
+            elif button_text == "Characters":
+                self.people_controller.show_view(self.lower_text_box)
+            elif button_text == "Lifeforms":
+                self.lifeforms_controller.show_view(self.lower_text_box)
+            elif button_text == "Ships":
+                self.ships_controller.show_view(self.lower_text_box)
+            elif button_text == "Vehicle":
+                self.vehicle_controller.show_view(self.lower_text_box)
+            elif button_text == "Events":
+                self.events_controller.show_view(self.lower_text_box)
+            elif button_text == "Technology":
+                self.technology_controller.show_view(self.lower_text_box)
+            elif button_text == "Organizations":
+                self.organizations_controller.show_view(self.lower_text_box)
+            elif button_text == "Adventure Hooks":
+                self.adventure_hooks_controller.show_view(self.lower_text_box)
+            elif button_text == "Console":
+                self.console_view.show()
+                self.console_view.raise_()  # Bring to front
+                self.console_view.activateWindow()
+        return handler
 
     def apply_theme_and_font(self) -> None:
         """Apply the current theme and font settings."""
@@ -731,22 +707,15 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         
     def update_progress(self) -> None:
         """Updates progress bar based on background task messages."""
-        while not self.data_download_controller.progress_queue.empty():
-            message = self.data_download_controller.progress_queue.get()
-            self.lower_text_box.append(message)
-            
-            if "Progress:" in message:
-                try:
-                    progress = int(message.split(":")[1].strip())
-                    self.progress_bar.setValue(progress)
-                except (IndexError, ValueError):
-                    logger.warning(f"Invalid progress message format: {message}")
-                    
-            if "Download complete" in message:
-                self.progress_timer.stop()
-                self.progress_bar.setValue(100)
-                self.cancel_button.setEnabled(False)
-                
+        try:
+            while not self.data_download_queue.empty():
+                progress, message = self.data_download_queue.get_nowait()
+                self.console_controller.console_view.append_text(message)
+                if self.console_controller.console_view.progress_bar:
+                    self.console_controller.console_view.progress_bar.setValue(progress)
+        except Exception as e:
+            logging.error(f"Error updating progress: {e}")
+
     def open_settings(self) -> None:
         """Opens the settings dialog and applies changes globally."""
         dialog = SettingsDialog(self.current_theme, self.current_font, self)
@@ -826,29 +795,54 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         """Opens the licenses dialog."""
         # self.font_controller.show_licenses(self)
 
-    def _create_button_handler(self, button_text: str):
-        def handler():
-            if button_text == "Sectors":
-                self.sectors_controller.show_view(self.lower_text_box)
-            elif button_text == "Planets":
-                self.planets_controller.show_view(self.lower_text_box)
-            elif button_text == "Characters":
-                self.people_controller.show_view(self.lower_text_box)
-            elif button_text == "Lifeforms":
-                self.lifeforms_controller.show_view(self.lower_text_box)
-            elif button_text == "Ships":
-                self.ships_controller.show_view(self.lower_text_box)
-            elif button_text == "Vehicle":
-                self.vehicle_controller.show_view(self.lower_text_box)
-            elif button_text == "Events":
-                self.events_controller.show_view(self.lower_text_box)
-            elif button_text == "Technology":
-                self.technology_controller.show_view(self.lower_text_box)
-            elif button_text == "Organizations":
-                self.organizations_controller.show_view(self.lower_text_box)
-            elif button_text == "Adventure Hooks":
-                self.adventure_hooks_controller.show_view(self.lower_text_box)
-        return handler
+    def _update_button_sizes(self, event):
+        """Update button sizes when window is resized."""
+        # Get current window size
+        width = self.width()
+        height = self.height()
+        
+        # Calculate new font size based on window size
+        base_font_size = 12  # Base font size
+        scale_factor = min(width, height) / 800  # Scale based on smallest dimension
+        new_font_size = int(base_font_size * scale_factor)
+        
+        # Update all button fonts
+        for button in [
+            self.sector_button, self.planet_button, self.people_button,
+            self.lifeforms_button, self.ships_button, self.vehicle_button,
+            self.events_button, self.technology_button, self.organizations_button,
+            self.adventure_hooks_button, self.console_button
+        ]:
+            font = button.font()
+            font.setPointSize(new_font_size)
+            button.setFont(font)
+            
+            # Update button size policy to maintain proper scaling
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            
+            # Update minimum size based on font size
+            metrics = QFontMetrics(font)
+            text_width = metrics.horizontalAdvance(button.text())
+            text_height = metrics.height()
+            button.setMinimumSize(text_width + 40, text_height + 20)
+            
+        # Update text box fonts
+        text_box_font = self.upper_text_box.font()
+        text_box_font.setPointSize(new_font_size)
+        self.upper_text_box.setFont(text_box_font)
+        self.lower_text_box.setFont(text_box_font)
+        
+        # Update flow layout spacing if container exists
+        try:
+            if self.button_container:
+                flow_layout = self.button_container.layout()
+                if flow_layout:
+                    flow_layout.setSpacing(new_font_size // 2)
+        except Exception as e:
+            logger.warning(f"Failed to update flow layout spacing: {e}")
+            
+        # Call original resize event
+        super().resizeEvent(event)
 
 if __name__ == "__main__":
     logger.info("Starting application...")
