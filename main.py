@@ -213,6 +213,23 @@ class SettingsDialog(QDialog):
         theme_group.setLayout(theme_layout)
         layout.addWidget(theme_group)
         
+        # Font selection
+        font_group = QGroupBox("Font")
+        font_layout = QVBoxLayout()
+        
+        font_row = QHBoxLayout()
+        font_label = QLabel("Current Font:")
+        self.font_display = QLabel(f"{self.current_font.family()} {self.current_font.pointSize()}")
+        font_button = QPushButton("Change Font")
+        font_button.clicked.connect(self.choose_font)
+        
+        font_row.addWidget(font_label)
+        font_row.addWidget(self.font_display)
+        font_row.addWidget(font_button)
+        font_layout.addLayout(font_row)
+        font_group.setLayout(font_layout)
+        layout.addWidget(font_group)
+        
         # Add buttons
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(self.accept)
@@ -771,23 +788,19 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         """Download and load API data."""
         logger.info("Starting API data download")
         try:
-            # Create and show progress UI
-            self.progress_bar.setVisible(True)
-            self.progress_bar.setValue(0)
-            self.cancel_button.setVisible(True)
-            self.cancel_button.setEnabled(True)
+            # Show console view with progress UI
+            self.console_view.show_progress_bar(True)
+            self.console_view.update_progress_bar(0)
+            self.console_view.enable_cancel_button(True)
             
-            # Start download with UI elements
-            self.data_download_controller.start_download(
-                view_widget=self.lower_text_box,
-                progress_bar=self.progress_bar,
-                cancel_button=self.cancel_button
-            )
+            # Start download
+            self.data_download_controller.start_download()
         except Exception as e:
             logger.error(f"API data download failed: {str(e)}", exc_info=True)
             QMessageBox.critical(self, "Error", f"Failed to download API data: {str(e)}")
-            self.progress_bar.setVisible(False)
-            self.cancel_button.setEnabled(False)
+            if hasattr(self, 'console_view'):
+                self.console_view.show_progress_bar(False)
+                self.console_view.enable_cancel_button(False)
 
     def open_licenses(self) -> None:
         """Opens the licenses dialog."""
