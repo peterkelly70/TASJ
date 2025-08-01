@@ -79,3 +79,85 @@ class SectorDB:
             else:
                 print(f"Failed to create sector '{sector_name}'.")
                 return False
+                
+    def get_all_sectors(self):
+        """
+        Retrieves all sectors from the database.
+        Returns a list of dictionaries, each representing a sector.
+        """
+        try:
+            cursor = self.db.conn.cursor()
+            cursor.execute("SELECT * FROM sectors")
+            columns = [column[0] for column in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            return results
+        except Exception as e:
+            print(f"Error retrieving sectors: {e}")
+            return []
+        
+    def get_sector_by_id(self, sector_id):
+        """
+        Retrieves the sector record for the given sector ID.
+        Returns the matching record as a dictionary or None if not found.
+        """
+        conditions = {"id": sector_id}
+        records = self.db.read_records("sectors", conditions)
+        return records[0] if records else None
+        
+    def search_sectors(self, search_text):
+        """
+        Searches for sectors matching the given search text in name or description.
+        Returns a list of matching sector dictionaries.
+        """
+        # Use SQL LIKE for case-insensitive partial matching
+        search_pattern = f"%{search_text}%"
+        query = "SELECT * FROM sectors WHERE name LIKE ? OR description LIKE ?"
+        params = (search_pattern, search_pattern)
+        
+        try:
+            cursor = self.db.connection.cursor()
+            cursor.execute(query, params)
+            columns = [column[0] for column in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            return results
+        except Exception as e:
+            print(f"Error searching sectors: {e}")
+            return []
+            
+    def search_systems(self, search_text):
+        """
+        Searches for systems matching the given search text in name or UWP.
+        Returns a list of matching system dictionaries.
+        """
+        # Use SQL LIKE for case-insensitive partial matching
+        search_pattern = f"%{search_text}%"
+        query = "SELECT * FROM systems WHERE name LIKE ? OR UWP LIKE ?"
+        params = (search_pattern, search_pattern)
+        
+        try:
+            cursor = self.db.connection.cursor()
+            cursor.execute(query, params)
+            columns = [column[0] for column in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            return results
+        except Exception as e:
+            print(f"Error searching systems: {e}")
+            return []
+            
+    def get_systems_for_sector(self, sector_id):
+        """
+        Retrieves all systems for the given sector ID.
+        Returns a list of system dictionaries.
+        """
+        conditions = {"sector_id": sector_id}
+        records = self.db.read_records("systems", conditions)
+        return records
+        
+    def get_planets_for_system(self, system_id):
+        """
+        Retrieves all planets for the given system ID.
+        Returns a list of planet dictionaries.
+        """
+        conditions = {"system_id": system_id}
+        records = self.db.read_records("planets", conditions)
+        return records

@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
+
 from PyQt6.QtWidgets import (
     QMainWindow, QApplication, QDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QProgressBar, QMenuBar, QTabWidget,
     QTextEdit, QDialogButtonBox, QWidget, QFontDialog, QMessageBox, QMenu,
-    QListWidget, QGroupBox, QFormLayout, QListWidgetItem, QSizePolicy
+    QListWidget, QGroupBox, QFormLayout, QListWidgetItem, QSizePolicy, QStackedWidget
 )
-from PyQt6.QtCore import QSettings, Qt, QTimer
+from PyQt6.QtCore import QSettings, Qt, QTimer, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFont, QAction, QFontMetrics
 from utils.flow_layout import FlowLayout
 import sys
@@ -424,6 +426,16 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.db_instance = TravellerDatabase(DATABASE_TYPE)
         logger.info(f"Database initialized with type: {DATABASE_TYPE}")
         
+        # Run database migrations
+        try:
+            logger.info(f"Running database migrations for {DATABASE_TYPE}...")
+            run_migrations(DATABASE_TYPE, existing_db=self.db_instance)
+            logger.info("Database migrations completed successfully")
+        except Exception as e:
+            logger.error(f"Error running database migrations: {e}")
+            # Don't raise exception here, as the application can still function
+            # with the existing database structure
+        
     def _load_settings(self) -> None:
         """Load and initialize application settings."""
         config_parser = configparser.ConfigParser()
@@ -481,6 +493,9 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.technology_controller = TechnologyController(self.db_instance)
         self.organizations_controller = OrganizationsController(self.db_instance)
         self.adventure_hooks_controller = AdventureHooksController(self.db_instance)
+        
+        # Connect sector selection to planet updates
+        self.sectors_controller.sector_changed.connect(self.planets_controller.set_current_sector)
         
         # Initialize data download controller
         self.data_download_queue = multiprocessing.Queue()
@@ -584,15 +599,22 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         # Add button container to top layout
         top_layout.addWidget(self.button_container)
         
-        # Create main view box
-        self.main_view = QTextEdit()
-        self.main_view.setReadOnly(True)
-        self.main_view.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        # Create main view as a stacked widget instead of QTextEdit
+        # This allows us to show complex UI components
+        self.main_view = QStackedWidget()
         
-        # Set main view properties
+        # Create a default text view for simple messages
+        self.text_view = QTextEdit()
+        self.text_view.setReadOnly(True)
+        self.text_view.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        
+        # Set text view properties
         font = QFont()
         font.setPointSize(10)  # Smaller font size
-        self.main_view.setFont(font)
+        self.text_view.setFont(font)
+        
+        # Add text view to stacked widget
+        self.main_view.addWidget(self.text_view)
         
         # Add main view to bottom layout
         bottom_layout.addWidget(self.main_view)
@@ -620,8 +642,12 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     def _create_button_handler(self, button_text: str):
         """Create handler for button clicks."""
         def handler():
-            # Clear main view
-            self.main_view.clear()
+            # Stop any running timers
+            if hasattr(self.console_controller, 'update_timer') and self.console_controller.update_timer.isActive():
+                self.console_controller.update_timer.stop()
+            
+            # Clear text view (for controllers that still use it)
+            self.text_view.clear()
             
             # Show appropriate view based on button
             if button_text == "Sectors":
@@ -645,8 +671,8 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
             elif button_text == "Adventure Hooks":
                 self.adventure_hooks_controller.show_view(self.main_view)
             elif button_text == "Console":
-                # Show console view in the main view
-                self.main_view.setPlainText(self.console_view.text_area.toPlainText())
+                # Show console view in the main view using the controller
+                self.console_controller.show_view(self.main_view)
         return handler
 
     def apply_theme_and_font(self) -> None:
@@ -665,11 +691,8 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
 
         # Get theme-specific font if no custom font set
         if not self.current_font:
-            theme_font_id = self.current_theme.lower()
-            # self.current_font = self.font_controller.ensure_font_available(theme_font_id, self)
-            # if not self.current_font:
-            #     # Fallback to system font if download failed or was declined
-            #     self.current_font = QFont("DejaVu Sans", 10)
+            # Use system default font
+            pass
         
         # Load and apply theme CSS globally to the application
         try:
@@ -703,16 +726,79 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         logger.info("Cancelling data download")
         self.data_download_controller.cancel_event.set()
         
+    class MigrationWorker(QThread):
+        finished = pyqtSignal(bool, str)  # success, message
+        progress = pyqtSignal(str)  # progress message
+        
+        def __init__(self, db_instance):
+            super().__init__()
+            self.db_instance = db_instance
+            self._is_cancelled = False
+            
+        def cancel(self):
+            self._is_cancelled = True
+            
+        def run(self):
+            try:
+                self.progress.emit("Starting database migrations...")
+                # Get the database type from the instance
+                db_type = self.db_instance.db_type
+                run_migrations(db_type, worker=self, existing_db=self.db_instance)
+                if self._is_cancelled:
+                    self.finished.emit(False, "Migrations cancelled by user.")
+                else:
+                    self.finished.emit(True, "Database migrations completed successfully.")
+            except Exception as e:
+                error_msg = f"Migration failed: {str(e)}"
+                logger.error(error_msg, exc_info=True)
+                self.finished.emit(False, error_msg)
+
     def run_migrations(self) -> None:
-        """Execute database migrations."""
-        logger.info("Running database migrations")
-        try:
-            run_migrations(self.db_instance)
+        """Execute database migrations in a separate thread."""
+        if hasattr(self, '_migration_worker') and self._migration_worker.isRunning():
+            QMessageBox.information(self, "Info", "Migrations are already running.")
+            return
+            
+        logger.info("Starting database migrations")
+        
+        # Create and show progress dialog
+        self.migration_progress = QProgressDialog("Running database migrations...", "Cancel", 0, 0, self)
+        self.migration_progress.setWindowTitle("Database Migrations")
+        self.migration_progress.setWindowModality(Qt.WindowModality.WindowModal)
+        self.migration_progress.canceled.connect(self.cancel_migrations)
+        
+        # Create and start worker thread
+        self._migration_worker = self.MigrationWorker(self.db_instance)
+        self._migration_worker.finished.connect(self.on_migrations_finished)
+        self._migration_worker.progress.connect(self.update_migration_progress)
+        self._migration_worker.start()
+        
+        self.migration_progress.show()
+        
+    def update_migration_progress(self, message):
+        """Update progress dialog with current migration status."""
+        if hasattr(self, 'migration_progress') and self.migration_progress:
+            self.migration_progress.setLabelText(message)
+            QApplication.processEvents()  # Keep UI responsive
+            
+    def cancel_migrations(self):
+        """Handle cancellation of migrations."""
+        if hasattr(self, '_migration_worker') and self._migration_worker.isRunning():
+            self._migration_worker.cancel()
+            self.migration_progress.setLabelText("Cancelling migrations...")
+            self.migration_progress.setCancelButton(None)  # Disable cancel button while cancelling
+            
+    def on_migrations_finished(self, success, message):
+        """Handle migration completion."""
+        if hasattr(self, 'migration_progress'):
+            self.migration_progress.close()
+            
+        if success:
             logger.info("Migrations completed successfully")
-            QMessageBox.information(self, "Success", "Database migrations completed successfully.")
-        except Exception as e:
-            logger.error(f"Migration failed: {str(e)}", exc_info=True)
-            QMessageBox.critical(self, "Error", f"Migration failed: {str(e)}")
+            QMessageBox.information(self, "Success", message)
+        else:
+            logger.error(f"Migration failed: {message}")
+            QMessageBox.critical(self, "Error", message)
             
     def _setup_progress_monitoring(self) -> None:
         """Set up progress monitoring for background tasks."""

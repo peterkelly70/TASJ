@@ -1,6 +1,8 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 from controller.characters_controller import CharactersController
+import json
+import logging
 
 class TestCharactersController(unittest.TestCase):
     def setUp(self):
@@ -65,6 +67,35 @@ class TestCharactersController(unittest.TestCase):
         mock_id = "char1"
         self.controller.delete_character(mock_id)
         self.mock_db.delete_character.assert_called_once_with(mock_id)
+
+    def test_download_api_data(self, mocker):
+        logging.basicConfig(level=logging.INFO, handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('test.log')
+        ])
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = '{"key1": "value1", "key2": "value2"}'  # Example JSON data
+        mocker.patch('requests.get', return_value=mock_response)
+
+        controller = CharactersController()
+        try:
+            controller.download_api_data()
+        except Exception as e:
+            logging.error(f"Exception during download_api_data: {e}")
+
+        # Log the API response for inspection
+        logging.info("API Response:")
+        logging.info(mock_response.text)
+
+        # Log the parsed data (if parsing is involved)
+        try:
+            data = json.loads(mock_response.text)
+            logging.info("Parsed API Data:")
+            logging.info(data)
+        except json.JSONDecodeError as e:
+            logging.error(f"JSONDecodeError: {e}")
 
 if __name__ == '__main__':
     unittest.main()

@@ -103,21 +103,21 @@ def download_data_task(db_type, progress_queue, cancel_event):
     try:
         universe_json = api.get_universe()
         if not (isinstance(universe_json, dict) and "Sectors" in universe_json):
-            progress_queue.put("❌ Error: Universe data does not contain 'Sectors'.")
+            progress_queue.put((0, "❌ Error: Universe data does not contain 'Sectors'."))
             return
 
         sectors_json = universe_json["Sectors"]
-        progress_queue.put(f"✅ Retrieved {len(sectors_json)} sectors.")
+        progress_queue.put((0, f"✅ Retrieved {len(sectors_json)} sectors."))
 
         for idx, sector_obj in enumerate(sectors_json):
             if cancel_event.is_set():
-                progress_queue.put("⏹️ Download cancelled by user.")
+                progress_queue.put((0, "⏹️ Download cancelled by user."))
                 return
 
             # Try to get the sector name from the object first.
             official_name = sector_obj.get("Name", "").strip() or sector_obj.get("Abbreviation", "").strip()
             if not official_name:
-                progress_queue.put("⚠️ Skipping sector due to missing name/abbreviation.")
+                progress_queue.put((0, "⚠️ Skipping sector due to missing name/abbreviation."))
                 continue
 
             # Retrieve the SEC data for the sector.
@@ -128,7 +128,7 @@ def download_data_task(db_type, progress_queue, cancel_event):
             # Prefer the explicit "name" from the metadata; otherwise, use the official name.
             sector_name = sector_metadata.get("name", official_name)
 
-            progress_queue.put(f"🛰️ Processing sector: {sector_name}")
+            progress_queue.put((0, f"🛰️ Processing sector: {sector_name}"))
 
             # Upsert the sector record. You can add additional fields from sector_metadata if desired.
             sector_data = {"name": sector_name}
@@ -146,10 +146,10 @@ def download_data_task(db_type, progress_queue, cancel_event):
             ]
 
             if not planet_lines:
-                progress_queue.put(f"DEBUG: No planet lines matched for sector '{sector_name}'. Raw SEC data:")
+                progress_queue.put((0, f"DEBUG: No planet lines matched for sector '{sector_name}'. Raw SEC data:"))
                 for line in lines:
-                    progress_queue.put(f"DEBUG: {line}")
-                progress_queue.put(f"✅ Processed 0 planets for sector '{sector_name}'.")
+                    progress_queue.put((0, f"DEBUG: {line}"))
+                progress_queue.put((0, f"✅ Processed 0 planets for sector '{sector_name}'."))
                 continue
 
             # Parse each candidate planet line.
@@ -157,10 +157,10 @@ def download_data_task(db_type, progress_queue, cancel_event):
             planets = [planet for planet in planets if planet]
 
             sector_planets = 0
-            progress_queue.put(f"INFO: Starting planet processing loop for sector {sector_name} ({len(planets)} planets)...") 
+            progress_queue.put((0, f"INFO: Starting planet processing loop for sector {sector_name} ({len(planets)} planets)...")) 
             for planet_index, planet in enumerate(planets):
                 if cancel_event.is_set():
-                    progress_queue.put("⏹️ Download cancelled by user.")
+                    progress_queue.put((0, "⏹️ Download cancelled by user."))
                     return
 
                 # Set a default image path if not provided.
@@ -173,24 +173,24 @@ def download_data_task(db_type, progress_queue, cancel_event):
                 # Upsert the planet record.
                 planet_name = planet.get('name', 'N/A')
                 planet_hex = planet.get('hex', 'N/A')
-                progress_queue.put(f"DEBUG: Upserting planet {planet_index + 1}/{len(planets)}: {planet_name} ({planet_hex})...") 
+                progress_queue.put((0, f"DEBUG: Upserting planet {planet_index + 1}/{len(planets)}: {planet_name} ({planet_hex})...")) 
                 try:
                     planet_db.upsert_planet(planet)
-                    progress_queue.put(f"DEBUG: Upserted planet {planet_name} ({planet_hex}).") 
+                    progress_queue.put((0, f"DEBUG: Upserted planet {planet_name} ({planet_hex}).")) 
                 except Exception as upsert_error:
-                    progress_queue.put(f"ERROR: Failed to upsert planet {planet_name} ({planet_hex}): {upsert_error}") 
+                    progress_queue.put((0, f"ERROR: Failed to upsert planet {planet_name} ({planet_hex}): {upsert_error}")) 
                     # Decide if you want to continue with other planets or stop
                     # continue 
                 sector_planets += 1
 
-            progress_queue.put(f"INFO: Finished planet processing loop for sector {sector_name}.") 
-            progress_queue.put(f"✅ Processed {sector_planets} planets for sector '{sector_name}'.")
+            progress_queue.put((0, f"INFO: Finished planet processing loop for sector {sector_name}.")) 
+            progress_queue.put((0, f"✅ Processed {sector_planets} planets for sector '{sector_name}'."))
             total_planets += sector_planets
 
-        progress_queue.put(f"🎉 Download complete: {total_planets} planets updated.")
+        progress_queue.put((100, f"🎉 Download complete: {total_planets} planets updated."))
 
     except Exception as e:
-        progress_queue.put(f"❌ Error downloading data: {e}")
+        progress_queue.put((0, f"❌ Error downloading data: {e}"))
     finally:
         db_instance.close()
-        progress_queue.put("🔌 Database connection closed.")
+        progress_queue.put((0, "🔌 Database connection closed."))

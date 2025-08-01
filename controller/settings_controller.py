@@ -157,3 +157,23 @@ class SettingsController:
             if font.fromString(font_str):
                 return font
         return None
+        
+    def save_milieu(self, milieu: str) -> None:
+        """Save current milieu preference.
+        
+        Stores the user's preferred milieu (time period) for Traveller sector data.
+        
+        Args:
+            milieu (str): Milieu code (e.g., 'M1105', 'M1248')
+        """
+        self.settings.setValue("milieu", milieu)
+        
+    def load_milieu(self) -> str:
+        """Load saved milieu preference.
+        
+        Retrieves the user's preferred milieu for Traveller sector data.
+        
+        Returns:
+            str: Milieu code, defaults to "M1105" if not set
+        """
+        return self.settings.value("milieu", "M1105")

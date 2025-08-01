@@ -67,12 +67,58 @@ class ConsoleController(QObject):
         sys.stderr = ConsoleOutput(self.console_view)
 
     def show_console(self):
-        """Show the console view."""
+        """Show the console view as a separate window."""
         if not self.console_view.isVisible():
             self.console_view.show()
             self.console_view.raise_()  # Bring to front
             self.console_shown.emit()
             self.main_window.activateWindow()
+            
+    def show_view(self, display_widget):
+        """Show console content in the main view widget.
+        
+        This follows the pattern used by other controllers to display content
+        in the main window rather than as a separate window.
+        """
+        # Get the current console text
+        console_text = self.get_console_text()
+        
+        # Display it in the main view widget
+        display_widget.setPlainText(console_text)
+        
+        # Set up a timer to periodically update the main view with console content
+        # This ensures the main view stays in sync with console output
+        if not hasattr(self, 'update_timer'):
+            from PyQt6.QtCore import QTimer
+            self.update_timer = QTimer()
+            self.update_timer.timeout.connect(lambda: self._update_main_view(display_widget))
+            self.update_timer.start(2000)  # Update every 2 seconds instead of 500ms
+            
+    def _update_main_view(self, display_widget):
+        """Update the main view with the latest console content."""
+        if display_widget:
+            # Don't update if text is selected (user might be trying to copy)
+            cursor = display_widget.textCursor()
+            if cursor.hasSelection():
+                return
+                
+            # Preserve cursor position
+            position = cursor.position()
+            
+            # Store scroll position
+            scrollbar = display_widget.verticalScrollBar()
+            scroll_pos = scrollbar.value()
+            
+            # Update text
+            display_widget.setPlainText(self.get_console_text())
+            
+            # Restore cursor position
+            cursor = display_widget.textCursor()
+            cursor.setPosition(position)
+            display_widget.setTextCursor(cursor)
+            
+            # Restore scroll position
+            scrollbar.setValue(scroll_pos)
 
     def log_cancel_operation(self, operation_name: str):
         """Log a cancelled operation and show a dialog"""

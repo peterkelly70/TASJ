@@ -3,7 +3,7 @@ from typing import Optional
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QProgressBar,
-    QTextEdit, QMenuBar, QMessageBox
+    QTextEdit, QMenuBar, QMessageBox, QTabWidget
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QAction, QCloseEvent
@@ -12,6 +12,8 @@ from controller.settings_controller import SettingsController
 from controller.theme_controller import ThemeController
 from controller.font_controller import FontController
 from controller.data_download_controller import DataDownloadController
+from controller.mission_generator_controller import MissionGeneratorController
+from controller.adventure_hooks_controller import AdventureHooksController
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,10 @@ class MainWindow(QMainWindow):
         self.theme_controller = theme_controller
         self.font_controller = font_controller
         self.data_controller = data_controller
+        
+        # Initialize game tools controllers
+        self.mission_generator_controller = MissionGeneratorController(parent_widget=self)
+        self.adventure_hooks_controller = AdventureHooksController(parent_widget=self)
         
         self._setup_ui()
         self._restore_settings()
@@ -79,6 +85,17 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
         
+        # Tools menu
+        tools_menu = menubar.addMenu("Tools")
+        
+        mission_generator_action = QAction("Mission Generator", self)
+        mission_generator_action.triggered.connect(self.open_mission_generator)
+        tools_menu.addAction(mission_generator_action)
+        
+        adventure_hooks_action = QAction("Adventure Hooks", self)
+        adventure_hooks_action.triggered.connect(self.open_adventure_hooks)
+        tools_menu.addAction(adventure_hooks_action)
+        
         # Theme menu
         theme_menu = menubar.addMenu("Theme")
         
@@ -118,8 +135,17 @@ class MainWindow(QMainWindow):
         
     def _setup_content_area(self, layout: QVBoxLayout) -> None:
         """Set up the main content area."""
-        # Add your content widgets here
-        pass
+        # Create a tab widget for main content
+        self.content_tabs = QTabWidget()
+        layout.addWidget(self.content_tabs)
+        
+        # Add a welcome tab
+        welcome_widget = QWidget()
+        welcome_layout = QVBoxLayout(welcome_widget)
+        welcome_label = QLabel("Welcome to Traveller Campaign Management")
+        welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        welcome_layout.addWidget(welcome_label)
+        self.content_tabs.addTab(welcome_widget, "Welcome")
         
     def _setup_status_bar(self) -> None:
         """Set up the status bar with progress indicator."""
@@ -188,6 +214,34 @@ class MainWindow(QMainWindow):
     def open_licenses(self) -> None:
         """Open licenses dialog."""
         self.font_controller.show_licenses(self)
+        
+    def open_mission_generator(self) -> None:
+        """Open the mission generator in the main content area."""
+        mission_widget = self.mission_generator_controller.get_widget()
+        
+        # Check if the tab already exists
+        for i in range(self.content_tabs.count()):
+            if self.content_tabs.tabText(i) == "Mission Generator":
+                self.content_tabs.setCurrentIndex(i)
+                return
+        
+        # Add a new tab if it doesn't exist
+        self.content_tabs.addTab(mission_widget, "Mission Generator")
+        self.content_tabs.setCurrentWidget(mission_widget)
+        
+    def open_adventure_hooks(self) -> None:
+        """Open the adventure hooks generator in the main content area."""
+        hooks_widget = self.adventure_hooks_controller.get_widget()
+        
+        # Check if the tab already exists
+        for i in range(self.content_tabs.count()):
+            if self.content_tabs.tabText(i) == "Adventure Hooks":
+                self.content_tabs.setCurrentIndex(i)
+                return
+        
+        # Add a new tab if it doesn't exist
+        self.content_tabs.addTab(hooks_widget, "Adventure Hooks")
+        self.content_tabs.setCurrentWidget(hooks_widget)
         
     def download_all_data(self) -> None:
         """Start downloading data in background process."""

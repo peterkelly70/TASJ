@@ -1,7 +1,23 @@
 import os
 import sqlite3
-import mysql.connector
 from dotenv import load_dotenv
+
+# Only import mysql.connector when needed
+mysql_connector = None
+
+# Flag to check if MySQL is available
+MYSQL_AVAILABLE = False
+
+# Try to import mysql.connector, but don't fail if it's not available
+try:
+    import mysql.connector as mysql_connector
+    MYSQL_AVAILABLE = True
+except ImportError:
+    # MySQL is not available, but that's okay
+    pass
+
+# Constants
+AND_SEPARATOR = ' AND '
 
 class TravellerDatabase:
     _instance = None
@@ -14,41 +30,61 @@ class TravellerDatabase:
 
     def __init__(self, db_type=None):
         if not self._initialized:
+            # Default to SQLite if no database type is specified
+            if db_type is None:
+                db_type = 'sqlite'
+                
             print(f"Initializing database with type: {db_type}")  # Debug line
             self.db_type = db_type
 
             # ✅ Ensure `.env` is loaded before retrieving database values
             load_dotenv("config/.env")
 
-            if self.db_type == 'sqlite':
-                db_path = os.getenv('DATABASE_FILE_PATH')
-                if not db_path:
-                    raise ValueError("❌ DATABASE_FILE_PATH is not set in .env or is invalid!")
-
-                self.conn = sqlite3.connect(db_path)
-                print(f"✅ Connected to SQLite database at {db_path}")
-
-            elif self.db_type == 'mysql':
-                db_host = os.getenv('DATABASE_HOST')
-                db_user = os.getenv('DATABASE_USERNAME')
-                db_password = os.getenv('DATABASE_PASSWORD')
-                db_name = os.getenv('DATABASE_NAME')
-
-                if not all([db_host, db_user, db_password, db_name]):
-                    raise ValueError("❌ MySQL database credentials are not fully set in .env!")
-
-                self.conn = mysql.connector.connect(
-                    host=db_host,
-                    user=db_user,
-                    password=db_password,
-                    database=db_name
-                )
-                print(f"✅ Connected to MySQL database {db_name}")
-
-            else:
-                raise ValueError(f"❌ Unsupported database type: {self.db_type}")
-
+            self._initialize_connection()
             self._initialized = True
+            
+    def _initialize_connection(self):
+        """Initialize the database connection based on the database type."""
+        if self.db_type == 'sqlite':
+            self._initialize_sqlite_connection()
+        elif self.db_type == 'mysql':
+            self._initialize_mysql_connection()
+        else:
+            raise ValueError(f"❌ Unsupported database type: {self.db_type}")
+    
+    def _initialize_sqlite_connection(self):
+        """Initialize SQLite database connection."""
+        db_path = os.getenv('DATABASE_FILE_PATH')
+        if not db_path:
+            raise ValueError("❌ DATABASE_FILE_PATH is not set in .env or is invalid!")
+
+        self.conn = sqlite3.connect(db_path)
+        print(f"✅ Connected to SQLite database at {db_path}")
+    
+    def _initialize_mysql_connection(self):
+        """Initialize MySQL database connection."""
+        # Check if MySQL is available
+        if not MYSQL_AVAILABLE:
+            print("⚠️ MySQL connector not installed. Falling back to SQLite.")
+            self.db_type = 'sqlite'
+            self._initialize_sqlite_connection()
+            return
+        
+        db_host = os.getenv('DATABASE_HOST')
+        db_user = os.getenv('DATABASE_USERNAME')
+        db_password = os.getenv('DATABASE_PASSWORD')
+        db_name = os.getenv('DATABASE_NAME')
+
+        if not all([db_host, db_user, db_password, db_name]):
+            raise ValueError("❌ MySQL database credentials are not fully set in .env!")
+
+        self.conn = mysql_connector.connect(
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            database=db_name
+        )
+        print(f"✅ Connected to MySQL database {db_name}")
 
     def execute_script(self, script):
         try:
@@ -56,7 +92,8 @@ class TravellerDatabase:
             if self.db_type == 'sqlite':
                 cursor.executescript(script)
             elif self.db_type == 'mysql':
-                for result in cursor.execute(script, multi=True):
+                for _ in cursor.execute(script, multi=True):
+                    # Process each result if needed
                     pass
             self.conn.commit()
             return 1
@@ -91,7 +128,7 @@ class TravellerDatabase:
         try:
             cursor = self.conn.cursor()
             if conditions:
-                condition_string = ' AND '.join([f"{key} = %s" if self.db_type == 'mysql' else f"{key} = ?" for key in conditions.keys()])
+                condition_string = AND_SEPARATOR.join([f"{key} = %s" if self.db_type == 'mysql' else f"{key} = ?" for key in conditions.keys()])
                 sql = f"SELECT * FROM {table} WHERE {condition_string}"
                 cursor.execute(sql, list(conditions.values()))
             else:
@@ -108,7 +145,7 @@ class TravellerDatabase:
             return -1
         try:
             set_string = ', '.join([f"{key} = %s" if self.db_type == 'mysql' else f"{key} = ?" for key in data.keys()])
-            condition_string = ' AND '.join([f"{key} = %s" if self.db_type == 'mysql' else f"{key} = ?" for key in conditions.keys()])
+            condition_string = AND_SEPARATOR.join([f"{key} = %s" if self.db_type == 'mysql' else f"{key} = ?" for key in conditions.keys()])
             sql = f"UPDATE {table} SET {set_string} WHERE {condition_string}"
             cursor = self.conn.cursor()
             cursor.execute(sql, list(data.values()) + list(conditions.values()))
@@ -123,7 +160,7 @@ class TravellerDatabase:
         if not self.sanity_check(table, conditions):
             return -1
         try:
-            condition_string = ' AND '.join([f"{key} = %s" if self.db_type == 'mysql' else f"{key} = ?" for key in conditions.keys()])
+            condition_string = 'AND_SEPARATOR'.join([f"{key} = %s" if self.db_type == 'mysql' else f"{key} = ?" for key in conditions.keys()])
             sql = f"DELETE FROM {table} WHERE {condition_string}"
             cursor = self.conn.cursor()
             cursor.execute(sql, list(conditions.values()))
@@ -160,6 +197,22 @@ class TravellerDatabase:
     def column_exists(self, table_name, column_name):
         """ Checks if a column exists in a table. """
         return column_name in self.get_table_columns(table_name)
+
+    def get_planets_for_system(self, system_id):
+        """ Retrieves all planets for the given system ID. 
+        
+        Note: This is a temporary implementation that uses sector_id since the schema
+        doesn't have a direct system_id column yet.
+        """
+        try:
+            cursor = self.conn.cursor()
+            # Using sector_id as a temporary workaround since the schema doesn't have system_id
+            sql = "SELECT * FROM planets WHERE sector_id = ?"
+            cursor.execute(sql, [system_id])
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"❌ Error retrieving planets for system {system_id}: {e}")
+            return []
 
     def close(self):
         """ Closes the database connection and allows reinitialization. """
