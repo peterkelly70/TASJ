@@ -39,15 +39,31 @@ from controller.adventure_hooks_controller import AdventureHooksController
 from view.console_view import ConsoleView
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)  # Set to DEBUG to capture all messages
 logger = logging.getLogger(__name__)
 
 # Configure file handler with rotation
 log_file = os.path.join('logs', 'tasj.log')
 os.makedirs('logs', exist_ok=True)
 file_handler = RotatingFileHandler(log_file, maxBytes=1024*1024, backupCount=5)
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logging.getLogger().addHandler(file_handler)
+file_handler.setLevel(logging.DEBUG)  # Capture all levels in the log file
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+
+# Configure console handler with a higher level (WARNING)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.WARNING)  # Only show WARNING and above in console
+console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+console_handler.setFormatter(console_formatter)
+
+# Get the root logger and add both handlers
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)  # Set root logger to lowest level
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
+
+# Set specific loggers to DEBUG
+logging.getLogger('view.sector_map_widget').setLevel(logging.DEBUG)
 
 # Load environment variables
 load_dotenv("config/.env")
@@ -498,16 +514,11 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.sectors_controller.sector_changed.connect(self.planets_controller.set_current_sector)
         
         # Initialize data download controller
-        self.data_download_queue = multiprocessing.Queue()
-        self.data_download_cancel_event = multiprocessing.Event()
         self.data_download_controller = DataDownloadController(
-            self.db_instance,
-            self.data_download_queue,
-            self.data_download_cancel_event
+            self.db_instance
         )
         
-        # Connect progress monitoring
-        self._setup_progress_monitoring()
+        # Progress monitoring is now handled internally by the controller
 
     def _setup_ui(self) -> None:
         """Set up the main UI components."""
@@ -717,14 +728,13 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         logger.info("Starting data download process")
         try:
             self.data_download_controller.start_download()
-            self._setup_progress_monitoring()
         except Exception as e:
             logger.error(f"Failed to start data download: {str(e)}", exc_info=True)
             
     def cancel_download(self) -> None:
         """Cancel ongoing download process."""
         logger.info("Cancelling data download")
-        self.data_download_controller.cancel_event.set()
+        self.data_download_controller.cancel_download()
         
     class MigrationWorker(QThread):
         finished = pyqtSignal(bool, str)  # success, message
@@ -800,22 +810,6 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
             logger.error(f"Migration failed: {message}")
             QMessageBox.critical(self, "Error", message)
             
-    def _setup_progress_monitoring(self) -> None:
-        """Set up progress monitoring for background tasks."""
-        self.progress_timer = QTimer()
-        self.progress_timer.timeout.connect(self.update_progress)
-        self.progress_timer.start(100)
-        
-    def update_progress(self) -> None:
-        """Updates progress bar based on background task messages."""
-        try:
-            while not self.data_download_queue.empty():
-                progress, message = self.data_download_queue.get_nowait()
-                self.console_controller.console_view.append_text(message)
-                if self.console_controller.console_view.progress_bar:
-                    self.console_controller.console_view.progress_bar.setValue(progress)
-        except Exception as e:
-            logging.error(f"Error updating progress: {e}")
 
     def open_settings(self) -> None:
         """Opens the settings dialog and applies changes globally."""
@@ -874,10 +868,18 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         """Download and load API data."""
         logger.info("Starting API data download")
         try:
+            # Make sure console view is visible and active
+            self.console_view.show()
+            self.console_view.raise_()
+            self.console_view.append_text("\n==== STARTING API DATA DOWNLOAD ====\n\n")
+            
             # Show console view with progress UI
             self.console_view.show_progress_bar(True)
             self.console_view.update_progress_bar(0)
             self.console_view.enable_cancel_button(True)
+            
+            # Process any pending events to ensure UI updates
+            QApplication.processEvents()
             
             # Start download
             self.data_download_controller.start_download()

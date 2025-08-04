@@ -1,9 +1,12 @@
 import logging
 import math
+import sys
+import os
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTabWidget, QScrollArea, QSplitter,
-    QLabel, QGroupBox, QListWidget, QListWidgetItem, QStatusBar
+    QLabel, QGroupBox, QListWidget, QListWidgetItem, QStatusBar, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QPixmap
@@ -12,6 +15,19 @@ from view.planet_map_widget import PlanetMapWidget
 from view.system_map_widget import SystemMapWidget
 from view.sector_map_widget import SectorMapWidget
 
+# Set up file logging
+log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, f'map_tabs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file, mode='w'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # Constants for tab names
@@ -149,23 +165,78 @@ class MapTabsWidget(QWidget):
         
     def _on_system_selected(self, system_data):
         """Handle system selection from sector map."""
+        logger.info("\n=== System Selection Started ===")
+        logger.debug(f"System data type: {type(system_data)}")
+        logger.debug(f"System data: {system_data}")
+        
         if not system_data:
+            logger.error("No system data provided")
             return
             
-        # Get planets for this system
-        from model.system_db import SystemDB
-        system_db = SystemDB()
-        planets = system_db.get_planets_by_system_id(system_data.get("id"))
-        
-        # Set system in system map widget
-        self.system_map_widget.set_system(system_data, planets)
-        
-        # Switch to system map tab
-        self.map_tabs.setCurrentIndex(1)  # Fixed: use map_tabs instead of tab_widget
-        self._clear_status_message()
-        
-        # Forward the signal
-        self.system_selected.emit(system_data)
+        try:
+            # Store current system
+            self.current_system = system_data
+            logger.info(f"System stored: {system_data.get('name')} (ID: {system_data.get('id')})")
+            
+            # Log current tab states
+            logger.debug(f"Current map tab index: {self.map_tabs.currentIndex()}")
+            logger.debug(f"Current info tab index: {self.info_tabs.currentIndex()}")
+            logger.debug(f"Map tab count: {self.map_tabs.count()}")
+            logger.debug(f"Info tab count: {self.info_tabs.count()}")
+            
+            # Log tab names for debugging
+            for i in range(self.map_tabs.count()):
+                logger.debug(f"Map tab {i}: {self.map_tabs.tabText(i)}")
+            for i in range(self.info_tabs.count()):
+                logger.debug(f"Info tab {i}: {self.info_tabs.tabText(i)}")
+            
+            # Switch to system map tab first to ensure widgets are initialized
+            logger.debug("Switching to system map tab...")
+            self.map_tabs.setCurrentIndex(1)  # System map tab
+            logger.debug(f"Map tab after switch: {self.map_tabs.currentIndex()}")
+            
+            # Get planets for this system
+            logger.debug("Fetching planets...")
+            from model.system_db import SystemDB
+            system_db = SystemDB()
+            system_id = system_data.get("id")
+            logger.debug(f"Fetching planets for system ID: {system_id}")
+            planets = system_db.get_planets_by_system_id(system_id)
+            logger.debug(f"Found {len(planets) if planets else 0} planets")
+            
+            # Set system in system map widget
+            logger.debug("Updating system map widget...")
+            self.system_map_widget.set_system(system_data, planets)
+            
+            # Update system info
+            logger.debug("Updating system info...")
+            self._update_system_info(system_data)
+            
+            # Switch to system info tab
+            logger.debug("Switching to system info tab...")
+            self.info_tabs.setCurrentIndex(1)  # System info tab
+            current_info_widget = self.info_tabs.currentWidget()
+            logger.debug(f"Current info widget: {current_info_widget}")
+            
+            if current_info_widget:
+                current_info_widget.show()
+                current_info_widget.update()
+                logger.debug("Info tab updated")
+            else:
+                logger.warning("Could not get current info widget")
+            
+            # Force update the UI
+            self.info_tabs.update()
+            logger.debug("UI update complete")
+            
+            # Forward the signal
+            logger.debug("Emitting system_selected signal...")
+            self.system_selected.emit(system_data)
+            logger.info("=== System Selection Completed Successfully ===\n")
+            
+        except Exception as e:
+            logger.error(f"Error in _on_system_selected: {str(e)}", exc_info=True)
+            logger.info("=== System Selection Failed ===\n")
         
     def _on_planet_selected(self, planet_data):
         """Handle planet selection from system map."""
@@ -192,6 +263,139 @@ class MapTabsWidget(QWidget):
         if self.status_bar:
             self.status_bar.clearMessage()
             
+    def _update_system_info(self, system, loading_message=None):
+        """Update the system info tab with system details and planet list.
+        
+        Args:
+            system: Dictionary containing system data
+            loading_message: Optional loading message to display
+        """
+        logger.debug("\n--- Updating System Info ---")
+        logger.debug(f"System data: {system}")
+        logger.debug(f"Loading message: {loading_message}")
+        
+        try:
+            # Clear previous content
+            logger.debug("Clearing previous content...")
+            while self.system_info_layout.count():
+                item = self.system_info_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+            
+            if loading_message:
+                # Show loading message
+                logger.debug("Showing loading message")
+                label = QLabel(loading_message)
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.system_info_layout.addWidget(label)
+                self.system_info_layout.update()
+                logger.debug("Loading message displayed")
+                return
+                
+            if not system:
+                logger.debug("No system data provided, showing placeholder")
+                label = QLabel("No system selected")
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.system_info_layout.addWidget(label)
+                return
+            
+        if not system:
+            # No system selected
+            label = QLabel("No system selected")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.system_info_layout.addWidget(label)
+            return
+            
+        # Create a scroll area for the system info
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        
+        # Create a widget to hold the content
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        # System details group
+        details_group = QGroupBox("System Details")
+        details_layout = QVBoxLayout(details_group)
+        
+        # Add system information
+        if 'name' in system:
+            name_label = QLabel(f"<b>Name:</b> {system['name']}")
+            details_layout.addWidget(name_label)
+            
+        if 'hex_code' in system:
+            hex_label = QLabel(f"<b>Hex:</b> {system['hex_code']}")
+            details_layout.addWidget(hex_label)
+            
+        if 'uwp' in system:
+            uwp_label = QLabel(f"<b>UWP:</b> {system['uwp']}")
+            details_layout.addWidget(uwp_label)
+            
+        if 'trade_codes' in system and system['trade_codes']:
+            codes = ', '.join(system['trade_codes'])
+            codes_label = QLabel(f"<b>Trade Codes:</b> {codes}")
+            codes_label.setWordWrap(True)
+            details_layout.addWidget(codes_label)
+            
+        if 'bases' in system and system['bases']:
+            bases_label = QLabel(f"<b>Bases:</b> {system['bases']}")
+            details_layout.addWidget(bases_label)
+            
+        if 'zone' in system and system['zone']:
+            zone_label = QLabel(f"<b>Zone:</b> {system['zone']}")
+            details_layout.addWidget(zone_label)
+            
+        if 'pbg' in system:
+            pbg_label = QLabel(f"<b>PBG:</b> {system['pbg']}")
+            details_layout.addWidget(pbg_label)
+            
+        if 'allegiance' in system and system['allegiance']:
+            alleg_label = QLabel(f"<b>Allegiance:</b> {system['allegiance']}")
+            details_layout.addWidget(alleg_label)
+            
+        if 'stellar' in system and system['stellar']:
+            stellar_label = QLabel(f"<b>Stellar:</b> {system['stellar']}")
+            stellar_label.setWordWrap(True)
+            details_layout.addWidget(stellar_label)
+            
+        layout.addWidget(details_group)
+        
+        # Add planets list if available
+        if hasattr(self, 'system_map_widget') and hasattr(self.system_map_widget, 'planets'):
+            planets = self.system_map_widget.planets
+            if planets:
+                planets_group = QGroupBox("Planets")
+                planets_layout = QVBoxLayout(planets_group)
+                
+                planet_list = QListWidget()
+                for planet in planets:
+                    item_text = f"{planet.get('orbit', '?')}. {planet.get('name', 'Unnamed')}"
+                    if 'uwp' in planet:
+                        item_text += f" - {planet['uwp']}"
+                    if 'trade_codes' in planet and planet['trade_codes']:
+                        item_text += f" ({', '.join(planet['trade_codes'])})"
+                        
+                    item = QListWidgetItem(item_text)
+                    item.setData(Qt.ItemDataRole.UserRole, planet)
+                    planet_list.addItem(item)
+                
+                # Connect planet selection
+                planet_list.itemClicked.connect(
+                    lambda item: self._on_planet_selected(item.data(Qt.ItemDataRole.UserRole)))
+                
+                planets_layout.addWidget(planet_list)
+                layout.addWidget(planets_group)
+        
+        # Add a stretch to push everything to the top
+        layout.addStretch(1)
+        
+        # Set up the scroll area
+        scroll.setWidget(content)
+        self.system_info_layout.addWidget(scroll)
+    
     def _on_tab_changed(self, index):
         """Handle tab change events."""
         # This can be used to update content when switching tabs

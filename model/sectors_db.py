@@ -63,13 +63,24 @@ class SectorDB:
 
         existing = self.get_sector_by_name(sector_name)
         if existing:
-            # Optionally, merge or update specific fields
-            result = self.db.update_record("sectors", data, {"name": sector_name})
-            if result == 1:
-                print(f"Successfully updated sector '{sector_name}'.")
-                return True
-            else:
-                print(f"Failed to update sector '{sector_name}'.")
+            # For updates, temporarily disable foreign key constraints to avoid conflicts
+            try:
+                self.db.conn.execute('PRAGMA foreign_keys = OFF')
+                result = self.db.update_record("sectors", data, {"name": sector_name})
+                self.db.conn.execute('PRAGMA foreign_keys = ON')
+                self.db.conn.commit()
+                
+                if result == 1:
+                    print(f"Successfully updated sector '{sector_name}'.")
+                    return True
+                else:
+                    print(f"Failed to update sector '{sector_name}'.")
+                    return False
+            except Exception as e:
+                # Re-enable foreign keys even if there's an error
+                self.db.conn.execute('PRAGMA foreign_keys = ON')
+                self.db.conn.commit()
+                print(f"Error updating sector '{sector_name}': {e}")
                 return False
         else:
             result = self.db.create_record("sectors", data)

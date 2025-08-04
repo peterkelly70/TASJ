@@ -1,10 +1,18 @@
 import os
 import re
 import time
-from model.traveller_map_api import TravellerMapAPI
+from model.traveller_map_api_fixed_v2 import TravellerMapAPI
 from model.traveller_database import TravellerDatabase
 from model.sectors_db import SectorDB
+from model.systems_db import SystemDB
 from model.planets_db import PlanetDB
+from model.relationship_db import RelationshipDB
+import logging
+
+# Set up file-based logging
+logging.basicConfig(filename='/tmp/tasj_debug.log', level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+debug_logger = logging.getLogger('tasj_debug')
 
 def parse_sector_info(sec_data):
     """
@@ -89,16 +97,31 @@ def parse_sec_line(line):
             "allegiance": allegiance,
             "stellar": stellar
         }
-    except Exception as e:
+    except Exception:
         return None
+
+def create_thread_safe_db_connection(db_type):
+    """Create a new database connection that's safe to use in worker threads."""
+    # Create a new instance bypassing the singleton pattern
+    db_instance = object.__new__(TravellerDatabase)
+    db_instance._initialized = False
+    db_instance.__init__(db_type)
+    return db_instance
 
 def download_data_task(db_type, progress_queue, cancel_event):
     """Background task for downloading sector and planet data."""
-    db_instance = TravellerDatabase(db_type)
+    db_instance = create_thread_safe_db_connection(db_type)
     sector_db = SectorDB(db_instance)
     planet_db = PlanetDB(db_instance)
+    system_db = SystemDB(db_instance)
+    relationship_db = RelationshipDB(db_instance)
     api = TravellerMapAPI()
 
+    # Define constants for repeated messages
+    CANCEL_MSG = "⏹️ Download cancelled by user."
+    
+    # Initialize variables
+    processed_sectors = 0
     total_planets = 0
     try:
         universe_json = api.get_universe()
@@ -111,7 +134,7 @@ def download_data_task(db_type, progress_queue, cancel_event):
 
         for idx, sector_obj in enumerate(sectors_json):
             if cancel_event.is_set():
-                progress_queue.put((0, "⏹️ Download cancelled by user."))
+                progress_queue.put((0, CANCEL_MSG))
                 return
 
             # Try to get the sector name from the object first.
@@ -137,6 +160,14 @@ def download_data_task(db_type, progress_queue, cancel_event):
             if "milieu" in sector_metadata:
                 sector_data["milieu"] = sector_metadata["milieu"]
             sector_db.upsert_sector(sector_data)
+            
+            # Get the sector record to get the sector_id for foreign key relationships
+            sector_record = sector_db.get_sector_by_name(sector_name)
+            if not sector_record:
+                progress_queue.put((0, f"❌ Error: Could not retrieve sector record for '{sector_name}' after upsert."))
+                continue
+            sector_id = sector_record[0]  # First column is sector_id
+            progress_queue.put((0, f"DEBUG: Retrieved sector_id {sector_id} for sector '{sector_name}'"))
 
             # Split the SEC file into lines and filter candidate planet lines.
             lines = raw_sec.splitlines()
@@ -146,51 +177,122 @@ def download_data_task(db_type, progress_queue, cancel_event):
             ]
 
             if not planet_lines:
-                progress_queue.put((0, f"DEBUG: No planet lines matched for sector '{sector_name}'. Raw SEC data:"))
+                progress_queue.put((0, f"  DEBUG: No planet lines matched for sector '{sector_name}'. Raw SEC data:"))
                 for line in lines:
-                    progress_queue.put((0, f"DEBUG: {line}"))
-                progress_queue.put((0, f"✅ Processed 0 planets for sector '{sector_name}'."))
+                    progress_queue.put((0, f"    DEBUG: {line}"))
+                progress_queue.put((0, f"\n✅ Successfully updated sector '{sector_name}'."))
                 continue
 
             # Parse each candidate planet line.
             planets = [parse_sec_line(line) for line in planet_lines]
             planets = [planet for planet in planets if planet]
 
+            # Group planets by hex coordinate to handle systems
+            systems_data = {}
+            for planet in planets:
+                hex_coord = planet.get("hex", "0000")
+                if hex_coord not in systems_data:
+                    systems_data[hex_coord] = {
+                        "hex": hex_coord,
+                        "name": planet.get("name", f"System {hex_coord}"),
+                        "sector_id": sector_id,
+                        "planets": []
+                    }
+                systems_data[hex_coord]["planets"].append(planet)
+
             sector_planets = 0
-            progress_queue.put((0, f"INFO: Starting planet processing loop for sector {sector_name} ({len(planets)} planets)...")) 
-            for planet_index, planet in enumerate(planets):
+            progress_queue.put((0, f"INFO: Starting system/planet processing for sector {sector_name} ({len(systems_data)} systems, {len(planets)} planets)..."))
+            
+            for hex_coord, system_data in systems_data.items():
                 if cancel_event.is_set():
-                    progress_queue.put((0, "⏹️ Download cancelled by user."))
+                    progress_queue.put((0, CANCEL_MSG))
                     return
 
-                # Set a default image path if not provided.
-                if "image_path" not in planet or not planet["image_path"]:
-                    planet["image_path"] = "default_planet.png"
-
-                # Associate the planet with the current sector.
-                planet["sector_id"] = sector_name
-
-                # Upsert the planet record.
-                planet_name = planet.get('name', 'N/A')
-                planet_hex = planet.get('hex', 'N/A')
-                progress_queue.put((0, f"DEBUG: Upserting planet {planet_index + 1}/{len(planets)}: {planet_name} ({planet_hex})...")) 
+                # Create/update the system record
+                system_record = {
+                    "name": system_data["name"],
+                    "hex": hex_coord,
+                    "sector_id": sector_id
+                }
+                
+                # Process system and its planets using the model layer
                 try:
-                    planet_db.upsert_planet(planet)
-                    progress_queue.put((0, f"DEBUG: Upserted planet {planet_name} ({planet_hex}).")) 
-                except Exception as upsert_error:
-                    progress_queue.put((0, f"ERROR: Failed to upsert planet {planet_name} ({planet_hex}): {upsert_error}")) 
-                    # Decide if you want to continue with other planets or stop
-                    # continue 
-                sector_planets += 1
+                    # Create a system record with the necessary data
+                    system_record = {
+                        "name": system_data["name"],
+                        "hex": hex_coord,
+                        "sector_id": sector_id
+                    }
+                    
+                    # Process the system and its planets in the model layer with relationship handling
+                    result = system_db.process_system_with_planets(
+                        system_record, 
+                        system_data["planets"], 
+                        planet_db,
+                        relationship_db
+                    )
+                    
+                    if result["success"]:
+                        # Log system update
+                        debug_logger.info(f"Sending system update to queue for {system_data['name']}")
+                        # Make system messages stand out with clear prefix and separator line
+                        progress_queue.put((0, "----------------------------------------"))
+                        system_msg = f"SYSTEM: {system_data['name']} ({hex_coord}) with {len(system_data['planets'])} planets"
+                        debug_logger.info(f"Message content: '{system_msg}'")
+                        progress_queue.put((0, system_msg))
+                        progress_queue.put((0, "----------------------------------------"))
+                        
+                        # Log relationship updates
+                        if result["relationships"]["sector_system_added"]:
+                            progress_queue.put((0, "        LINK: Sector-System relationship established"))
+                            
+                        if result["relationships"]["system_planets_added"] > 0:
+                            progress_queue.put((0, "        LINK: {} System-Planet relationships established".format(
+                                result['relationships']['system_planets_added'])))
+                        
+                        # Log planet updates
+                        for planet in system_data["planets"]:
+                            if cancel_event.is_set():
+                                progress_queue.put((0, CANCEL_MSG))
+                                return
+                                
+                            planet_name = planet.get('name', 'N/A')
+                            planet_hex = planet.get('hex', 'N/A')
+                            progress_queue.put((0, "- - - - - - - - - - - - - - - - - - - -"))
+                            planet_msg = f"PLANET: {planet_name} ({planet_hex})"
+                            debug_logger.info(f"Sending planet update to queue: '{planet_msg}'")
+                            progress_queue.put((0, planet_msg))
+                            progress_queue.put((0, "- - - - - - - - - - - - - - - - - - - -"))
+                            
+                        # Update planet count
+                        sector_planets += result["planets_updated"]
+                        
+                        # Log any failures
+                        if result["planets_failed"] > 0:
+                            progress_queue.put((0, "        WARNING: Failed to update {} planets in this system".format(result['planets_failed'])))
+                            
+                        if result["relationships"]["system_planets_failed"] > 0:
+                            progress_queue.put((0, "        WARNING: Failed to establish {} System-Planet relationships".format(result['relationships']['system_planets_failed'])))
+                    else:
+                        # Log the error
+                        progress_queue.put((0, "    ERROR: Failed to process system {}: {}".format(
+                            system_data['name'], result.get('error', 'Unknown error'))))
+                        continue
+                        
+                except Exception as system_error:
+                    progress_queue.put((0, "    ERROR: Failed to process system {}: {}".format(
+                        system_data['name'], str(system_error))))
+                    continue
 
             progress_queue.put((0, f"INFO: Finished planet processing loop for sector {sector_name}.")) 
-            progress_queue.put((0, f"✅ Processed {sector_planets} planets for sector '{sector_name}'."))
+            progress_queue.put((0, "✅ Processed {} planets for sector '{}'".format(sector_planets, sector_name)))
             total_planets += sector_planets
+            processed_sectors += 1
 
-        progress_queue.put((100, f"🎉 Download complete: {total_planets} planets updated."))
+        progress_queue.put((0, "✅ Download complete! Processed {} planets across {} sectors.".format(total_planets, processed_sectors)))
 
-    except Exception as e:
-        progress_queue.put((0, f"❌ Error downloading data: {e}"))
+    except Exception as error:
+        progress_queue.put((0, "❌ Error downloading data: {}".format(error)))
     finally:
         db_instance.close()
         progress_queue.put((0, "🔌 Database connection closed."))

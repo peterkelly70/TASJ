@@ -1,6 +1,10 @@
 import os
 import sqlite3
+import logging
 from dotenv import load_dotenv
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Only import mysql.connector when needed
 mysql_connector = None
@@ -30,15 +34,16 @@ class TravellerDatabase:
 
     def __init__(self, db_type=None):
         if not self._initialized:
+            # ✅ Ensure `.env` is loaded before retrieving database values
+            env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.env')
+            load_dotenv(env_path)
+            
             # Default to SQLite if no database type is specified
             if db_type is None:
-                db_type = 'sqlite'
+                db_type = os.getenv('DATABASE_TYPE', 'sqlite')
                 
-            print(f"Initializing database with type: {db_type}")  # Debug line
-            self.db_type = db_type
-
-            # ✅ Ensure `.env` is loaded before retrieving database values
-            load_dotenv("config/.env")
+            print(f"Initializing database with type: {db_type}")
+            self.db_type = db_type.lower()
 
             self._initialize_connection()
             self._initialized = True
@@ -54,18 +59,30 @@ class TravellerDatabase:
     
     def _initialize_sqlite_connection(self):
         """Initialize SQLite database connection."""
-        db_path = os.getenv('DATABASE_FILE_PATH')
-        if not db_path:
-            raise ValueError("❌ DATABASE_FILE_PATH is not set in .env or is invalid!")
-
-        self.conn = sqlite3.connect(db_path)
-        print(f"✅ Connected to SQLite database at {db_path}")
+        db_path = os.getenv('DATABASE_FILE_PATH', 'database/traveller_campaign.db')
+        
+        # Convert relative path to absolute path
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), db_path)
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        
+        try:
+            self.conn = sqlite3.connect(db_path)
+            # Enable foreign key constraints
+            self.conn.execute('PRAGMA foreign_keys = ON')
+            self.conn.commit()
+            logger.info(f"✅ Connected to SQLite database at {db_path}")
+        except sqlite3.Error as e:
+            logger.error(f"❌ Failed to connect to SQLite database: {e}")
+            raise
     
     def _initialize_mysql_connection(self):
-        """Initialize MySQL database connection."""
+        """Initialize MySQL database connection with error handling and fallback to SQLite."""
         # Check if MySQL is available
         if not MYSQL_AVAILABLE:
-            print("⚠️ MySQL connector not installed. Falling back to SQLite.")
+            logger.warning("MySQL connector not installed. Falling back to SQLite.")
             self.db_type = 'sqlite'
             self._initialize_sqlite_connection()
             return
@@ -74,17 +91,30 @@ class TravellerDatabase:
         db_user = os.getenv('DATABASE_USERNAME')
         db_password = os.getenv('DATABASE_PASSWORD')
         db_name = os.getenv('DATABASE_NAME')
+        db_port = os.getenv('DATABASE_PORT', '3306')
 
+        # Validate required environment variables
         if not all([db_host, db_user, db_password, db_name]):
+            logger.error("MySQL database credentials are not fully set in .env")
             raise ValueError("❌ MySQL database credentials are not fully set in .env!")
 
-        self.conn = mysql_connector.connect(
-            host=db_host,
-            user=db_user,
-            password=db_password,
-            database=db_name
-        )
-        print(f"✅ Connected to MySQL database {db_name}")
+        try:
+            self.conn = mysql_connector.connect(
+                host=db_host,
+                user=db_user,
+                password=db_password,
+                database=db_name,
+                port=int(db_port),
+                connection_timeout=5
+            )
+            self.conn.autocommit = True
+            logger.info(f"✅ Connected to MySQL database '{db_name}' on {db_host}:{db_port}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MySQL database: {e}")
+            logger.warning("Falling back to SQLite...")
+            self.db_type = 'sqlite'
+            self._initialize_sqlite_connection()
 
     def execute_script(self, script):
         try:

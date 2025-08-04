@@ -181,14 +181,43 @@ class MapTabsWidget(QWidget):
         logger.info(f"System deleted: {system_data.get('name', 'Unknown')}")
         
     def _on_planet_selected(self, planet_data):
-        """Handle planet selection from system map."""
+        """Handle planet selection from system map.
+        
+        Args:
+            planet_data: Dictionary containing planet data
+        """
+        if not planet_data:
+            return
+            
         self.current_planet = planet_data
         self.planet_selected.emit(planet_data)
+        
+        # Switch to the planet tab
+        planet_tab_index = self.info_tabs.indexOf(self.planet_info_widget)
+        if planet_tab_index >= 0:
+            self.info_tabs.setCurrentIndex(planet_tab_index)
+        
+        # Update planet info
         self._update_planet_info(planet_data)
         
-        # Switch to planet map tab and update it
-        self.map_tabs.setCurrentWidget(self.planet_map_widget)
-        self.planet_map_widget.set_planet(planet_data)
+        # Update planet map if the widget exists
+        if hasattr(self, 'planet_map_widget'):
+            # Ensure the planet data has the required fields
+            if 'name' not in planet_data:
+                planet_data['name'] = planet_data.get('planet_name', 'Unknown Planet')
+            if 'UWP' not in planet_data and 'uwp' in planet_data:
+                planet_data['UWP'] = planet_data['uwp']
+            if 'sector' not in planet_data and 'sector_name' in planet_data:
+                planet_data['sector'] = planet_data['sector_name']
+                
+            # Set the planet data in the map widget
+            self.planet_map_widget.set_planet(planet_data)
+            
+            # Show the map tab if it exists
+            if hasattr(self, 'map_tabs'):
+                map_tab_index = self.map_tabs.indexOf(self.planet_map_widget)
+                if map_tab_index >= 0:
+                    self.map_tabs.setCurrentIndex(map_tab_index)
         
     def _on_map_error(self, error_message):
         """Handle map error messages from any map widget."""
@@ -282,7 +311,7 @@ class MapTabsWidget(QWidget):
         self.planet_info_layout.addStretch(1)
         
     def _update_system_info(self, system, loading_message=None):
-        """Update the system info tab with system details.
+        """Update the system info tab with system details and planet list.
         
         Args:
             system: Dictionary containing system data
@@ -308,6 +337,12 @@ class MapTabsWidget(QWidget):
             self.system_info_layout.addWidget(label)
             return
             
+        # Create a scroll area for the system info
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        
         # Create a group box for system details
         details_group = QGroupBox("System Details")
         details_layout = QVBoxLayout(details_group)
@@ -341,9 +376,45 @@ class MapTabsWidget(QWidget):
             allegiance_label = QLabel(f"<b>Allegiance:</b> {system['allegiance']}")
             details_layout.addWidget(allegiance_label)
             
-        # Add a spacer at the bottom
-        self.system_info_layout.addWidget(details_group)
-        self.system_info_layout.addStretch(1)
+        if 'trade_codes' in system and system['trade_codes']:
+            trade_label = QLabel(f"<b>Trade Codes:</b> {', '.join(system['trade_codes'])}")
+            details_layout.addWidget(trade_label)
+            
+        if 'stellar' in system and system['stellar']:
+            stellar_label = QLabel(f"<b>Stellar:</b> {system['stellar']}")
+            details_layout.addWidget(stellar_label)
+            
+        layout.addWidget(details_group)
+        
+        # Add planets section if available
+        if 'planets' in system and system['planets']:
+            planets_group = QGroupBox("Planets")
+            planets_layout = QVBoxLayout(planets_group)
+            
+            # Create a list widget for planets
+            planet_list = QListWidget()
+            planet_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+            
+            for planet in system['planets']:
+                planet_name = planet.get('name', 'Unnamed Planet')
+                planet_uwp = planet.get('UWP', '???????-?')
+                item_text = f"{planet_name} [{planet_uwp}]"
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.ItemDataRole.UserRole, planet)
+                planet_list.addItem(item)
+            
+            # Connect planet selection
+            planet_list.itemClicked.connect(lambda item: self._on_planet_selected(item.data(Qt.ItemDataRole.UserRole)))
+            
+            planets_layout.addWidget(planet_list)
+            layout.addWidget(planets_group)
+        
+        # Add a stretch to push everything to the top
+        layout.addStretch(1)
+        
+        # Set up the scroll area
+        scroll.setWidget(content)
+        self.system_info_layout.addWidget(scroll)
         
     def _update_sector_info(self, sector, loading_message=None):
         """Update the sector info tab with sector details.

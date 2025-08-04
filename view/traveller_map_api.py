@@ -357,8 +357,92 @@ def get_system_map(cls, sector_name: str, hex_code: str, milieu: Optional[str] =
             image = QImage()
             if image.loadFromData(data):
                 pixmap = QPixmap.fromImage(image)
-        retry_count = 0
-        while retry_count < cls.MAX_RETRIES:
+                
+                # Save to cache
+                if cls.ensure_cache_dir():
+                    try:
+                        pixmap.save(cache_path, "PNG")
+                        logger.info(f"Saved system map to cache: {cache_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to save to cache: {e}")
+                
+                return pixmap, None
+            else:
+                error_msg = "Failed to load image data"
+                logger.error(error_msg)
+                retry_count += 1
+                if retry_count < cls.MAX_RETRIES:
+                    logger.info(f"Retrying in {cls.RETRY_DELAY} seconds...")
+                    time.sleep(cls.RETRY_DELAY)
+                else:
+                    return None, error_msg
+                
+        except urllib.error.HTTPError as e:
+            error_msg = f"HTTP Error: {e.code} - {e.reason}"
+            logger.error(error_msg)
+            return None, error_msg
+            
+        except urllib.error.URLError as e:
+            error_msg = f"URL Error: {e.reason}"
+            logger.error(error_msg)
+            retry_count += 1
+            if retry_count < cls.MAX_RETRIES:
+                logger.info(f"Retrying in {cls.RETRY_DELAY} seconds...")
+                time.sleep(cls.RETRY_DELAY)
+            else:
+                return None, error_msg
+                
+        except socket.timeout:
+            error_msg = "Connection timed out"
+            logger.error(error_msg)
+            retry_count += 1
+            if retry_count < cls.MAX_RETRIES:
+                logger.info(f"Retrying in {cls.RETRY_DELAY} seconds...")
+                time.sleep(cls.RETRY_DELAY)
+            else:
+                return None, error_msg
+                
+        except Exception as e:
+            error_msg = f"Error fetching system map: {str(e)}"
+            logger.error(error_msg)
+            retry_count += 1
+            if retry_count < cls.MAX_RETRIES:
+                logger.info(f"Retrying in {cls.RETRY_DELAY} seconds...")
+                time.sleep(cls.RETRY_DELAY)
+            else:
+                return None, error_msg
+    
+    # If we get here, all retries failed
+    return None, "Failed to fetch system map after multiple attempts"
+
+@classmethod
+def get_world_data(cls, sector_name: str, hex_code: str, milieu: Optional[str] = None):
+    """
+    Fetch world data from the Traveller Map API.
+    
+    Args:
+        sector_name: Name of the sector
+        hex_code: Hex code of the system (e.g. "1910")
+        milieu: Optional milieu code (e.g., 'M1105', 'IW')
+        
+    Returns:
+        Tuple of (Dict containing the world data or None if failed, Error message or None if successful)
+    """
+    if not sector_name or not hex_code:
+        return None, "Missing sector name or hex code"
+        
+    # Build the API URL
+    url = f"{cls.BASE_URL}/data?sector={urllib.parse.quote(sector_name)}&hex={hex_code}"
+    
+    # Add milieu parameter if provided
+    if milieu:
+        url += f"&milieu={urllib.parse.quote(milieu)}"
+    
+    logger.info(f"Fetching world data from: {url}")
+    
+    # Implement retry logic
+    retry_count = 0
+    while retry_count < cls.MAX_RETRIES:
             try:
                 # Fetch the data
                 logger.info(f"Fetching world data from: {url} (attempt {retry_count + 1}/{cls.MAX_RETRIES})")
@@ -411,3 +495,4 @@ def get_system_map(cls, sector_name: str, hex_code: str, milieu: Optional[str] =
                     
         # If we get here, all retries failed
         return None, "Failed to fetch world data after multiple attempts"
+"""

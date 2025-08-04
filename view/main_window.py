@@ -3,10 +3,13 @@ from typing import Optional
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QProgressBar,
-    QTextEdit, QMenuBar, QMessageBox, QTabWidget
+    QTextEdit, QMenuBar, QMessageBox, QTabWidget, QSplitter
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QFont, QAction, QCloseEvent
+
+# Import the sector map widget
+from view.sector_map_widget import SectorMapWidget, ViewMode
 
 from controller.settings_controller import SettingsController
 from controller.theme_controller import ThemeController
@@ -37,6 +40,12 @@ class MainWindow(QMainWindow):
         # Initialize game tools controllers
         self.mission_generator_controller = MissionGeneratorController(parent_widget=self)
         self.adventure_hooks_controller = AdventureHooksController(parent_widget=self)
+        
+        # Initialize the sector map widget for the galactic map tab
+        self.sector_map = SectorMapWidget()
+        self.sector_map.system_selected.connect(self._on_system_selected)
+        self.sector_map.sector_selected.connect(self._on_sector_selected)
+        self.sector_map.map_error.connect(self._on_map_error)
         
         self._setup_ui()
         self._restore_settings()
@@ -147,6 +156,161 @@ class MainWindow(QMainWindow):
         welcome_layout.addWidget(welcome_label)
         self.content_tabs.addTab(welcome_widget, "Welcome")
         
+        # Add the galactic map tab
+        self._setup_galactic_map_tab()
+        
+    def _setup_galactic_map_tab(self) -> None:
+        """Set up the galactic map tab with sector map widget."""
+        # Create a splitter for the map and info panel
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Left side: Map widget
+        map_container = QWidget()
+        map_layout = QVBoxLayout(map_container)
+        map_layout.setContentsMargins(0, 0, 0, 0)
+        map_layout.addWidget(self.sector_map)
+        
+        # Right side: Info panel
+        info_panel = QWidget()
+        info_layout = QVBoxLayout(info_panel)
+        
+        # System info group
+        system_group = QWidget()
+        system_layout = QVBoxLayout(system_group)
+        system_layout.addWidget(QLabel("<b>System Information</b>"))
+        
+        self.system_info = QTextEdit()
+        self.system_info.setReadOnly(True)
+        self.system_info.setMaximumHeight(300)
+        system_layout.addWidget(self.system_info)
+        
+        # Sector info group
+        sector_group = QWidget()
+        sector_layout = QVBoxLayout(sector_group)
+        sector_layout.addWidget(QLabel("<b>Sector Information</b>"))
+        
+        self.sector_info = QTextEdit()
+        self.sector_info.setReadOnly(True)
+        sector_layout.addWidget(self.sector_info)
+        
+        # Add groups to info panel
+        info_layout.addWidget(system_group)
+        info_layout.addWidget(sector_group)
+        info_layout.addStretch()
+        
+        # Add widgets to splitter
+        splitter.addWidget(map_container)
+        splitter.addWidget(info_panel)
+        splitter.setStretchFactor(0, 3)  # Map takes 3/4 of space
+        splitter.setStretchFactor(1, 1)  # Info takes 1/4 of space
+        
+        # Add tab
+        self.content_tabs.addTab(splitter, "Galactic Map")
+    
+    @pyqtSlot(dict)
+    def _on_system_selected(self, system_data: dict) -> None:
+        """Handle system selection from the map."""
+        logger.debug(f"System selected: {system_data}")
+        
+        if not system_data:
+            self.system_info.clear()
+            self.system_info.setHtml("<i>No system selected</i>")
+            logger.debug("No system data provided")
+            return
+            
+        try:
+            # Format system information
+            info = []
+            
+            # Handle different possible data structures
+            name = system_data.get('name', system_data.get('Name', 'Unknown'))
+            uwp = system_data.get('uwp', system_data.get('UWP', '?'))
+            hex_code = system_data.get('hex', system_data.get('Hex', '?'))
+            
+            # Basic info
+            info.append(f"<b>Name:</b> {name}")
+            info.append(f"<b>UWP:</b> {uwp}")
+            info.append(f"<b>Hex:</b> {hex_code}")
+            
+            # Handle bases (could be string, list, or None)
+            bases = system_data.get('bases', system_data.get('Bases', []))
+            if isinstance(bases, str):
+                bases = [b for b in bases if b.strip()]
+            elif not isinstance(bases, list):
+                bases = [bases] if bases else []
+            info.append(f"<b>Bases:</b> {', '.join(str(b) for b in bases) or 'None'}")
+            
+            # Travel zone (handle different possible field names)
+            amber_zone = system_data.get('amber_zone', system_data.get('AmberZone', False))
+            zone = "Amber" if amber_zone else "Green"
+            info.append(f"<b>Travel Zone:</b> {zone}")
+            
+            # UWP details
+            uwp_parts = uwp.split('-')
+            if len(uwp_parts) >= 7:
+                info.append("<hr><b>UWP Details:</b>")
+                uwp_fields = [
+                    ("Starport", 0),
+                    ("Size", 1),
+                    ("Atmosphere", 2),
+                    ("Hydrographics", 3),
+                    ("Population", 4),
+                    ("Government", 5),
+                    ("Law Level", 6)
+                ]
+                for field_name, idx in uwp_fields:
+                    if idx < len(uwp_parts):
+                        info.append(f"<b>{field_name}:</b> {uwp_parts[idx]}")
+            
+            # Additional info if available
+            trade_codes = system_data.get('trade', system_data.get('TradeCodes', system_data.get('trade_codes', [])))
+            if trade_codes:
+                if isinstance(trade_codes, str):
+                    trade_codes = [t.strip() for t in trade_codes.split(',') if t.strip()]
+                info.append(f"<hr><b>Trade Codes:</b> {', '.join(trade_codes)}")
+                
+            allegiance = system_data.get('allegiance', system_data.get('Allegiance'))
+            if allegiance:
+                info.append(f"<b>Allegiance:</b> {allegiance}")
+                
+            sector = system_data.get('sector', system_data.get('Sector'))
+            if sector:
+                info.append(f"<b>Sector:</b> {sector}")
+            
+            # Join all info with line breaks and set HTML
+            self.system_info.setHtml('<br>'.join(info))
+            logger.debug("System info updated successfully")
+            
+        except Exception as e:
+            logger.error(f"Error formatting system info: {str(e)}", exc_info=True)
+            error_msg = f"<span style='color: red;'>Error displaying system info: {str(e)}</span>"
+            if 'system_info' in dir(self):
+                self.system_info.setHtml(error_msg)
+            else:
+                logger.error("system_info widget not found")
+    
+    @pyqtSlot(dict)
+    def _on_sector_selected(self, sector_data: dict) -> None:
+        """Handle sector selection from the map."""
+        if not sector_data:
+            self.sector_info.clear()
+            return
+            
+        # Format sector information
+        info = f"<b>Name:</b> {sector_data.get('name', 'Unknown')}<br>"
+        info += f"<b>Abbreviation:</b> {sector_data.get('abbreviation', '?')}<br>"
+        info += f"<b>Milieu:</b> {sector_data.get('milieu', '?')}<br>"
+        info += f"<b>X, Y:</b> {sector_data.get('x', '?')}, {sector_data.get('y', '?')}<br>"
+        info += f"<b>Tags:</b> {', '.join(sector_data.get('tags', [])) or 'None'}<br>"
+        info += f"<b>Data File:</b> {sector_data.get('data_file', '?')}<br>"
+        
+        self.sector_info.setHtml(info)
+    
+    @pyqtSlot(str)
+    def _on_map_error(self, error_msg: str) -> None:
+        """Handle map-related errors."""
+        QMessageBox.warning(self, "Map Error", error_msg)
+    
     def _setup_status_bar(self) -> None:
         """Set up the status bar with progress indicator."""
         self.progress_bar = QProgressBar()

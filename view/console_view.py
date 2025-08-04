@@ -8,10 +8,11 @@ class ConsoleView(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Console")
+        # Don't set window title as this will be embedded in the main window
         
         # Set up the layout
         self._layout = QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for better integration
         self.setLayout(self._layout)
         
         # Create the text area
@@ -19,10 +20,15 @@ class ConsoleView(QWidget):
         self.text_area.setReadOnly(True)
         self.text_area.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         
-        # Use a standard font
+        # Use a more visible font
         font = QFont()
-        font.setPointSize(10)  # Smaller font size
+        font.setPointSize(12)  # Larger font size
+        font.setBold(True)     # Make it bold
         self.text_area.setFont(font)
+        
+        # Add initial text to verify the console is working
+        self.text_area.append("Console initialized and ready for updates...\n")
+        self.text_area.append("---------------------------------------------\n")
         
         # Create progress bar
         self.progress_bar = QProgressBar()
@@ -53,9 +59,24 @@ class ConsoleView(QWidget):
         
     def append_text(self, text: str):
         """Append text to the console."""
+        # Remove recursive debug print
         self.text_area.moveCursor(QTextCursor.MoveOperation.End)
-        self.text_area.insertPlainText(text)
+        
+        # Special formatting for system and planet updates
+        if text.startswith("SYSTEM:"):
+            # Format system updates in bold
+            self.text_area.insertHtml(f"<b>{text}</b>")
+        elif text.startswith("PLANET:"):
+            # Format planet updates in italic
+            self.text_area.insertHtml(f"<i>{text}</i>")
+        else:
+            # Normal text
+            self.text_area.insertPlainText(text)
+            
         self.text_area.moveCursor(QTextCursor.MoveOperation.End)
+        
+        # Force the view to update
+        self.text_area.ensureCursorVisible()
         
     def clear_text(self):
         """Clear the console text."""

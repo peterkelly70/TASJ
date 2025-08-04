@@ -1,12 +1,19 @@
 import logging
 import os
 from PyQt6.QtWidgets import (QTextEdit, QVBoxLayout, QListWidget, QListWidgetItem, 
-                             QWidget, QSplitter, QLabel, QLineEdit, QHBoxLayout, 
-                             QGraphicsView, QGraphicsScene, QFrame, QTabWidget)
+                              QWidget, QSplitter, QLabel, QLineEdit, QHBoxLayout, 
+                              QGraphicsView, QGraphicsScene, QFrame, QTabWidget, QGroupBox)
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QFont, QPen, QBrush, QColor
 from view.sector_view import SectorView
 from model.sectors_db import SectorDB
+
+# Constants for repeated strings
+UNKNOWN_SYSTEM = 'Unknown System'
+UNKNOWN_SECTOR = 'Unknown Sector'
+NO_SYSTEMS_AVAILABLE = 'No systems available'
+NO_SYSTEM_SELECTED = 'No system selected'
+NO_SYSTEM_DATA = 'No system data available'
 
 # Style constants
 FONT_FAMILY = "Courier New"
@@ -34,503 +41,6 @@ class SectorController(QObject):
         self.sectors_db = SectorDB(db_instance)
         self.current_sector = None
         
-    def show_view(self, display_widget):
-        """Show the sector view in the given widget.
-        
-        Args:
-            display_widget: The widget to display the sector view in.
-        """
-        # Check if we're dealing with a stacked widget (main app) or text edit (legacy)
-        from PyQt6.QtWidgets import QStackedWidget
-        
-        if isinstance(display_widget, QStackedWidget):
-            # Create our sectors view widget if it doesn't exist
-            if not hasattr(self, 'sectors_view_widget'):
-                # Use the modern SectorView class
-                # Get database path from environment variable
-                import os
-                from dotenv import load_dotenv
-                load_dotenv("config/.env")
-                db_path = os.getenv('DATABASE_FILE_PATH', './database/traveller_campaign.db')
-                self.sectors_view_widget = SectorView(db_path=db_path)
-                # Load sectors from database
-                sectors = self.sectors_db.get_all_sectors()
-                
-                # Set sectors in the SectorView
-                self.sectors_view_widget.set_sectors(sectors)
-                
-                # Connect signals from SectorView
-                self.sectors_view_widget.system_selected.connect(self._on_system_selected)
-                self.sectors_view_widget.search_requested.connect(self._on_search_requested)
-                
-                # Add sectors view widget to the stacked widget
-                display_widget.addWidget(self.sectors_view_widget)
-                display_widget.setCurrentWidget(self.sectors_view_widget)
-                
-            else:
-                # If sectors view widget already exists, just switch to it and refresh data
-                sectors = self.db.get_all_sectors()
-                self.sectors_view_widget.set_sectors(sectors)
-                display_widget.setCurrentWidget(self.sectors_view_widget)
-                
-        elif isinstance(display_widget, QTextEdit):
-            # Instead of trying to set a layout on QTextEdit (which doesn't work properly),
-            # we'll display a simple message and create our own window
-            display_widget.clear()
-            display_widget.setText("Loading sectors...")
-            
-            # Create our own window for sector display
-            self.sector_window = QWidget()
-            self.sector_window.setWindowTitle("Sectors")
-            layout = QVBoxLayout(self.sector_window)
-            
-            # Create left panel for search and sector list
-            left_panel = QWidget()
-            left_layout = QVBoxLayout(left_panel)
-            left_layout.setContentsMargins(5, 5, 5, 5)
-            
-            # Add search box
-            search_box = QLineEdit()
-            search_box.setPlaceholderText("Search sectors...")
-            left_layout.addWidget(search_box)
-            
-            # Create sectors list widget
-            sectors_list = QListWidget()
-            sectors_list.setMaximumWidth(300)
-            left_layout.addWidget(sectors_list)
-            
-            # Create right panel for sector details and map
-            right_panel = QWidget()
-            right_layout = QVBoxLayout(right_panel)
-            
-            # Add sector header
-            sector_header = QLabel("Select a sector")
-            sector_header.setStyleSheet("font-weight: bold; font-size: 16px; color: #00FF00;")
-            right_layout.addWidget(sector_header)
-            
-            # Add sector map view
-            map_frame = QFrame()
-            map_frame.setFrameShape(QFrame.Shape.StyledPanel)
-            map_frame.setMinimumHeight(200)
-            map_layout = QVBoxLayout(map_frame)
-            
-            map_scene = QGraphicsScene()
-            map_view = QGraphicsView(map_scene)
-            map_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-            map_layout.addWidget(map_view)
-            
-            right_layout.addWidget(map_frame)
-            
-            # Create systems list and details panel
-            systems_splitter = QSplitter(Qt.Orientation.Vertical)
-            
-            # Systems list widget
-            systems_frame = QFrame()
-            systems_layout = QVBoxLayout(systems_frame)
-            systems_label = QLabel("Systems")
-            systems_label.setStyleSheet("color: #00FF00; font-weight: bold;")
-            systems_layout.addWidget(systems_label)
-            
-            systems_list = QListWidget()
-            systems_list.setStyleSheet(TERMINAL_STYLE)
-            systems_layout.addWidget(systems_list)
-            
-            # Planet details widget
-            planet_frame = QFrame()
-            planet_layout = QVBoxLayout(planet_frame)
-            planet_header = QLabel("Planet Details")
-            planet_header.setStyleSheet("color: #00FF00; font-weight: bold;")
-            planet_layout.addWidget(planet_header)
-            
-            planet_details = QTextEdit()
-            planet_details.setReadOnly(True)
-            planet_details.setStyleSheet(TERMINAL_STYLE)
-            planet_layout.addWidget(planet_details)
-            
-            # Add to systems splitter
-            systems_splitter.addWidget(systems_frame)
-            systems_splitter.addWidget(planet_frame)
-            systems_splitter.setStretchFactor(0, 1)  # Systems list gets less space
-            systems_splitter.setStretchFactor(1, 2)  # Planet details gets more space
-            
-            # Create sector details widget
-            sector_details = QTextEdit()
-            sector_details.setReadOnly(True)
-            sector_details.setStyleSheet(TERMINAL_STYLE)
-            
-            # Create info tabs for sector details
-            info_tabs = QTabWidget()
-            info_tabs.setStyleSheet("background-color: #0A0A0A; color: #00FF00;")
-            info_tabs.setObjectName("info_tabs")
-            
-            # Sector Info tab
-            sector_info_tab = QWidget()
-            sector_info_layout = QVBoxLayout(sector_info_tab)
-            sector_info_layout.addWidget(sector_details)
-            info_tabs.addTab(sector_info_tab, "Sector Info")
-            
-            # Systems tab (for info_tabs)
-            systems_tab = QWidget()
-            systems_tab.setObjectName("systems_tab")
-            systems_tab_layout = QVBoxLayout(systems_tab)
-            
-            # Systems list widget
-            systems_list = QListWidget()
-            systems_list.setObjectName("systems_list")
-            systems_list.setStyleSheet(TERMINAL_STYLE)
-            systems_tab_layout.addWidget(systems_list)
-            
-            info_tabs.addTab(systems_tab, "Systems")
-            
-            # Planet details tab (for info_tabs)
-            planet_info_tab = QWidget()
-            planet_info_tab.setObjectName("planet_info_tab")
-            planet_info_layout = QVBoxLayout(planet_info_tab)
-            
-            # Planet details
-            planet_details = QTextEdit()
-            planet_details.setObjectName("planet_details")
-            planet_details.setReadOnly(True)
-            planet_details.setStyleSheet(TERMINAL_STYLE)
-            planet_info_layout.addWidget(planet_details)
-            
-            info_tabs.addTab(planet_info_tab, "Planet Info")
-            
-            # We're using the MapTabsWidget from SectorView for maps
-            # No need to create separate map tabs here
-            
-            # Add info tabs to the right panel
-            # We'll use SectorView's MapTabsWidget for maps
-            right_layout.addWidget(info_tabs)
-            
-            # Create a splitter for left and right panels
-            splitter = QSplitter(Qt.Orientation.Horizontal)
-            splitter.addWidget(left_panel)
-            splitter.addWidget(right_panel)
-            splitter.setStretchFactor(0, 1)  # Left panel (list) gets less space
-            splitter.setStretchFactor(1, 3)  # Right panel (details) gets more space
-            
-            # Add splitter to layout
-            layout.addWidget(splitter)
-            
-            # Load sectors from database
-            self._load_sectors(sectors_list, sector_details)
-            
-            # Connect signals
-            sectors_list.currentItemChanged.connect(
-                lambda current, previous: self._on_sector_selected(
-                    current, sector_details, sector_header, map_scene, systems_list, info_tabs
-                )
-            )
-            
-            # Connect search box signal
-            search_box.textChanged.connect(
-                lambda text: self._filter_sectors(text, sectors_list)
-            )
-            
-            # Connect systems list signal
-            systems_list.currentItemChanged.connect(
-                lambda current, previous: self._on_system_selected(current, planet_details)
-            )
-            
-            # Store references to widgets we need to access later
-            self.sectors_list = sectors_list
-            self.sector_details = sector_details
-            self.sector_header = sector_header
-            self.map_scene = map_scene
-            self.map_view = map_view
-            
-            # Show the sector window
-            self.sector_window.resize(1000, 600)
-            self.sector_window.show()
-            
-            # Update the main display widget with a message
-            display_widget.setText("Sectors view opened in a new window.")
-        else:
-            logger.error(f"Unsupported display widget type: {type(display_widget)}")
-            
-    def get_sectors_by_milieu(self, milieu):
-        """Get sectors filtered by milieu.
-        
-        Args:
-            milieu: The milieu code to filter by
-            
-        Returns:
-            List of sector records matching the specified milieu
-        """
-        try:
-            # Query all sectors from the database
-            all_sectors = self.db.read_records("sectors")
-            
-            if not all_sectors:
-                return []
-                
-            # Filter sectors by milieu
-            filtered_sectors = [s for s in all_sectors if s[7] == milieu]  # Index 7 is milieu
-            return filtered_sectors
-            
-        except Exception as e:
-            logger.error(f"Error filtering sectors by milieu: {e}")
-            return []
-    
-    def _load_sectors(self, list_widget, details_widget, milieu=None):
-        """Load sectors from the database into the list widget.
-        
-        Args:
-            list_widget: The QListWidget to populate with sectors
-            details_widget: The QTextEdit to show sector details
-            milieu: Optional milieu code to filter sectors by
-        """
-        try:
-            # Get sectors, filtered by milieu if specified
-            if milieu:
-                sectors = self.get_sectors_by_milieu(milieu)
-            else:
-                # Get current milieu preference from settings
-                from controller.settings_controller import SettingsController
-                settings = SettingsController()
-                current_milieu = settings.load_milieu()
-                sectors = self.get_sectors_by_milieu(current_milieu)
-            
-            if not sectors:
-                list_widget.addItem("No sectors found for the selected milieu")
-                details_widget.setText("No sectors available for the selected milieu. Please add sectors to the database or select a different milieu.")
-                return
-                
-            # Sort sectors by name
-            sorted_sectors = sorted(sectors, key=lambda s: s[1] if s[1] else f"ZZZ{s[0]}")  # Sort by name (index 1), fallback to ID for unnamed
-            
-            # Add sectors to the list widget
-            for sector in sorted_sectors:
-                sector_id, name, x, y, desc, img_path, abbrev, milieu = sector
-                display_name = name if name else f"Unnamed Sector {sector_id}"
-                
-                # Create item with sector data stored
-                item = QListWidgetItem(display_name)
-                item.setData(Qt.ItemDataRole.UserRole, {
-                    "sector_id": sector_id,
-                    "name": name,
-                    "x_coordinate": x,
-                    "y_coordinate": y,
-                    "description": desc,
-                    "image_path": img_path,
-                    "abbreviation": abbrev,
-                    "milieu": milieu
-                })
-                
-                list_widget.addItem(item)
-                
-            # Select the first sector by default
-            if list_widget.count() > 0:
-                list_widget.setCurrentRow(0)
-                
-        except Exception as e:
-            logger.error(f"Error loading sectors: {e}")
-            list_widget.addItem(f"Error: {str(e)}")
-            details_widget.setText(f"Failed to load sectors: {str(e)}")
-            
-    def _filter_sectors(self, search_text, list_widget):
-        """Filter the sectors list based on search text.
-        
-        Args:
-            search_text: Text to search for in sector names
-            list_widget: The QListWidget containing sector items
-        """
-        search_text = search_text.lower()
-        
-        # Show all items if search text is empty
-        if not search_text:
-            for i in range(list_widget.count()):
-                list_widget.item(i).setHidden(False)
-            return
-            
-        # Filter items based on search text
-        for i in range(list_widget.count()):
-            item = list_widget.item(i)
-            sector_data = item.data(Qt.ItemDataRole.UserRole)
-            if sector_data:
-                # Search in name and abbreviation
-                name = sector_data.get('name', '').lower()
-                abbrev = sector_data.get('abbreviation', '').lower()
-                
-                # Show item if search text is in name or abbreviation
-                item.setHidden(not (search_text in name or search_text in abbrev))
-    
-    def _on_sector_selected(self, current_item, details_widget, header_widget, map_scene, systems_list, info_tabs):
-        """Handle sector selection from the list.
-        
-        Args:
-            current_item: The selected QListWidgetItem
-            details_widget: The QTextEdit widget to display sector details
-            header_widget: The QLabel widget for the sector header
-            map_scene: The QGraphicsScene for displaying the sector map
-            systems_list: Optional QListWidget to display systems in the sector
-            details_tabs: Optional QTabWidget to switch to systems tab
-        """
-        if not current_item:
-            return
-            
-        # Get sector data from the item
-        sector_data = current_item.data(Qt.ItemDataRole.UserRole)
-        if not sector_data:
-            return
-            
-        # Store the current sector
-        self.current_sector = sector_data
-        
-        # Update header with sector name
-        header_widget.setText(sector_data.get('name', 'Unknown Sector'))
-        
-        # We're not using map_tabs anymore
-        map_labels = {}
-        
-        # Display sector details with enhanced formatting
-        details = f"<div style='{DETAILS_DIV_STYLE}'>"
-        details += f"<h2 style='color: {TEXT_COLOR};'>{sector_data['name']}</h2>"
-        
-        # Create a table for sector details
-        details += f"<table style='{TABLE_STYLE}'>"
-        
-        # Add all available sector information
-        if sector_data['abbreviation']:
-            details += f"<tr><td style='{TABLE_CELL_STYLE}'><b>Abbreviation:</b></td><td>{sector_data['abbreviation']}</td></tr>"
-        if sector_data['milieu']:
-            details += f"<tr><td style='{TABLE_CELL_STYLE}'><b>Milieu:</b></td><td>{sector_data['milieu']}</td></tr>"
-        if sector_data['x_coordinate'] is not None:
-            details += f"<tr><td style='{TABLE_CELL_STYLE}'><b>X Coordinate:</b></td><td>{sector_data['x_coordinate']}</td></tr>"
-        if sector_data['y_coordinate'] is not None:
-            details += f"<tr><td style='{TABLE_CELL_STYLE}'><b>Y Coordinate:</b></td><td>{sector_data['y_coordinate']}</td></tr>"
-            
-        details += "</table>"
-        
-        # Add description if available
-        if sector_data.get('description'):
-            details += f"<h3 style='{SECTION_HEADER_STYLE}'>Description:</h3>"
-            details += f"<p>{sector_data['description']}</p>"
-        
-        details += "</div>"
-        
-        # Update details widget
-        if details_widget:
-            details_widget.setHtml(details)
-            
-        # Update sector map in map scene
-        if map_scene:
-            self._generate_sector_map(map_scene, sector_data)
-            
-        # Update sector map if available
-        sector_map_label = map_labels.get('sector_map_label')
-        if sector_map_label:
-            self._update_map_display(sector_map_label, 
-                                  sector_data.get('image_path'), 
-                                  f"Sector Map: {sector_data['name']}",
-                                  f"Error loading map for sector: {sector_data['name']}",
-                                  "sector",
-                                  sector_data.get('id'))
-            
-        # Load systems for this sector if systems_list is provided
-        if systems_list and self.db:
-            self._load_systems_for_sector(sector_data, systems_list, details_tabs)
-        
-        # Emit signal that sector has changed
-        logger.info(f"Emitting sector_changed signal for sector: {sector_data['name']}")
-        self.sector_changed.emit(sector_data)
-        
-    def _find_planet_details_widget(self, parent_list):
-        """Find the planet details widget in the UI hierarchy.
-        
-        Args:
-            parent_list: The parent list widget to start searching from
-            
-        Returns:
-            The planet details widget if found, None otherwise
-        """
-        # Find the main window
-        main_window = self._find_parent_window(parent_list)
-        if not main_window:
-            return None, {}
-            
-        # Find info tabs
-        info_tabs = main_window.findChild(QTabWidget, "info_tabs")
-        if not info_tabs:
-            return None, {}
-            
-        # Find map tabs and labels
-        map_tabs = main_window.findChild(QTabWidget, "map_tabs")
-        map_labels = self._find_map_labels(map_tabs) if map_tabs else {}
-        
-        # Find planet details widget
-        planet_details_widget = None
-        planet_info_tab = info_tabs.findChild(QWidget, "planet_info_tab")
-        if planet_info_tab:
-            planet_details_widget = planet_info_tab.findChild(QTextEdit, "planet_details")
-            
-        return planet_details_widget, map_labels
-    
-    def _on_system_selected(self, current_item, planet_details_widget=None):
-        """Handle system selection from the list.
-        
-        Args:
-            current_item: The selected QListWidgetItem or system data dictionary
-            planet_details_widget: The QTextEdit widget to display planet details
-        """
-        if not current_item:
-            return
-            
-        # Get system data from item
-        system_data = None
-        if isinstance(current_item, QListWidgetItem):
-            system_data = current_item.data(Qt.ItemDataRole.UserRole)
-        else:
-            # Assume it's already a system data dictionary
-            system_data = current_item
-            
-        if not system_data:
-            return
-            
-        # Find planet details widget if not provided
-        if not planet_details_widget and hasattr(self, 'sectors_view_widget'):
-            # _find_planet_details_widget returns a tuple: (widget, map_labels)
-            result = self._find_planet_details_widget(self.sectors_view_widget)
-            if result:
-                planet_details_widget, map_labels = result
-            
-        # Get planets for this system
-        planets = self.db.get_planets_for_system(system_data.get('id'))
-        
-        # Update planet details
-        if planet_details_widget and hasattr(planet_details_widget, 'setHtml'):
-            try:
-                # Format planet details as HTML
-                details_html = self._format_planet_details(system_data, planets)
-                planet_details_widget.setHtml(details_html)
-            except Exception as e:
-                print(f"❌ Error updating planet details: {e}")
-        elif planet_details_widget:
-            print(f"❌ Planet details widget does not have setHtml method: {type(planet_details_widget)}")
-        else:
-            print("⚠️ No planet details widget available")
-            
-    def _update_legacy_system_map(self, system_data, map_labels):
-        """Update the legacy system map display if it exists.
-        
-        Args:
-            system_data: Dictionary containing system information
-            map_labels: Dictionary of map labels and widgets
-        """
-        system_map_label = map_labels.get('system_map_label') if map_labels else None
-        if system_map_label:
-            system_hex = system_data.get('hex', '')
-            system_name = system_data.get('main_world', 'Unknown')
-            self._update_map_display(
-                system_map_label, 
-                system_data.get('image_path'), 
-                f"System Map: {system_hex} - {system_name}",
-                f"Error loading map for system: {system_hex} - {system_name}",
-                "system",
-                system_data.get('id')
-            )
-            
     def _format_planet_details(self, system_data, planets):
         """Format planet details as HTML.
         
@@ -541,358 +51,1140 @@ class SectorController(QObject):
         Returns:
             HTML string with formatted planet details
         """
-        details = f"<div style='{DETAILS_DIV_STYLE}'>"
-        details += f"<h3>System: {system_data['hex']} - {system_data.get('main_world', 'Unknown')}</h3>"
+        if not system_data:
+            return "<p>No system data available</p>"
         
-        # Create a table for planet details
-        details += f"<table style='{TABLE_STYLE}'>"
-        details += f"<tr style='{TABLE_HEADER_STYLE}'><th>Planet</th><th>UWP</th><th>Starport</th><th>Tech Level</th></tr>"
+        system_name = system_data.get('name', UNKNOWN_SYSTEM)
+        system_hex = system_data.get('hex', 'Unknown')
+        system_uwp = system_data.get('uwp', 'Unknown')
         
-        for planet in planets:
-            details += f"<tr><td>{planet.get('name', 'Unknown')}</td>"
-            details += f"<td>{planet.get('UWP', '-')}</td>"
-            details += f"<td>{planet.get('starport', '-')}</td>"
-            details += f"<td>{planet.get('tech_level', '-')}</td></tr>"
+        html = f"""
+        <div style="font-family: Courier New; color: #00FF00; background-color: #0A0A0A;">
+            <h2 style="color: #AAFFAA;">{system_name}</h2>
+            <p><strong>Hex:</strong> {system_hex}</p>
+            <p><strong>UWP:</strong> {system_uwp}</p>
+        """
         
-        details += "</table></div>"
-        return details
+        if planets:
+            html += "<h3 style='color: #AAFFAA;'>Planets:</h3>"
+            html += "<table style='width: 100%; border-collapse: collapse;'>"
+            html += "<tr style='color: #AAFFAA;'><th>Name</th><th>Type</th><th>Size</th><th>Atmosphere</th><th>Hydrographics</th><th>Population</th></tr>"
+            
+            for planet in planets:
+                html += f"""
+                <tr>
+                    <td>{planet.get('name', 'Unknown')}</td>
+                    <td>{planet.get('planet_type', 'Unknown')}</td>
+                    <td>{planet.get('size', 'Unknown')}</td>
+                    <td>{planet.get('atmosphere', 'Unknown')}</td>
+                    <td>{planet.get('hydrographics', 'Unknown')}</td>
+                    <td>{planet.get('population', 'Unknown')}</td>
+                </tr>
+                """
+            html += "</table>"
+        else:
+            html += "<p>No planets found for this system.</p>"
         
-    def _update_planet_details(self, system_data, planets, map_labels, planet_details_widget):
-        """Update planet details and map.
+        html += "</div>"
+        return html
+
+    def _format_system_details(self, system_data):
+        """Format system details as HTML.
         
         Args:
             system_data: Dictionary containing system information
-            planets: List of planet dictionaries
-            map_labels: Dictionary of map labels and widgets
-            planet_details_widget: Widget to display planet details
-        """
-        if not planets:
-            planet_details_widget.setHtml(f"<div style='{DETAILS_DIV_STYLE}'>"
-                                        f"<h3>No planets found in system {system_data['hex']}</h3></div>")
-            
-            # Clear planet map if no planets
-            planet_map_label = map_labels.get('planet_map')
-            if planet_map_label:
-                planet_map_label.setText("No planets in this system")
-            return
-            
-        # Format planet details
-        details = self._format_planet_details(system_data, planets)
-        
-        # Update planet details widget
-        planet_details_widget.setHtml(details)
-        
-        # Find the main world for map display
-        main_planet = next((planet for planet in planets if planet.get('name') == system_data.get('main_world')), None)
-        
-        # Update planet map
-        planet_map_label = map_labels.get('planet_map')
-        if planet_map_label and main_planet:
-            self._update_map_display(planet_map_label, 
-                                  main_planet.get('image_path'), 
-                                  f"Planet Map: {main_planet.get('name', 'Unknown')}",
-                                  f"Error loading map for planet: {main_planet.get('name', 'Unknown')}",
-                                  "planet",
-                                  main_planet.get('id'))
-            
-            # Update the planet map in the map tabs widget if available
-            if hasattr(self.view, 'map_tabs'):
-                self.view.map_tabs.set_planet(main_planet)
-    
-    def _handle_planet_selected(self, planet):
-        """Handle planet selection from the system map or list.
-        
-        Args:
-            planet: Dictionary containing planet information.
-        """
-        if not planet:
-            return
-            
-        logger.info(f"Planet selected: {planet.get('name', 'Unknown')}")
-        
-        # Store the selected planet
-        self.current_planet = planet
-        
-        # Update the planet map in the map tabs widget
-        if hasattr(self.view, 'map_tabs'):
-            self.view.map_tabs.set_planet(planet)
-            
-        # If we have a planet controller, notify it as well
-        if hasattr(self, 'planet_controller'):
-            self.planet_controller.set_current_planet(planet)
-    
-    def _update_map_display(self, map_label, image_path, placeholder_text, error_text, entity_type=None, entity_id=None):
-        """Update map display with image or placeholder text.
-        
-        Args:
-            map_label: QLabel widget to update
-            image_path: Path to image file
-            placeholder_text: Text to display if no image is available
-            error_text: Text to display if image loading fails
-            entity_type: Type of entity (sector, system, planet) for API fetching
-            entity_id: ID of the entity for API fetching and caching
-        """
-        if image_path and os.path.exists(image_path):
-            # Load image from file
-            pixmap = QPixmap(image_path)
-            if not pixmap.isNull():
-                map_label.setPixmap(pixmap.scaled(
-                    map_label.width(), 
-                    map_label.height(),
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                ))
-            else:
-                map_label.setText(error_text)
-        else:
-            # If no image or loading failed, try to fetch from API
-            if entity_type and entity_id and self.db:
-                map_label.setText(f"{placeholder_text}\n\nFetching map from TravellerWorlds API...")
-                # Start a background thread to fetch the map
-                self._fetch_map_from_api(map_label, entity_type, entity_id, placeholder_text)
-            else:
-                # If we can't fetch, just show placeholder
-                map_label.setText(f"{placeholder_text}\n\nMap would be loaded from TravellerWorlds API")
-                
-    def _fetch_map_from_api(self, map_label, entity_type, entity_id, placeholder_text):
-        """Fetch a map from the TravellerWorlds API and save it locally.
-        
-        Args:
-            map_label: QLabel widget to update with the fetched map
-            entity_type: Type of entity (sector, system, planet)
-            entity_id: ID of the entity
-            placeholder_text: Text to display if fetching fails
-        """
-        # In a real implementation, this would be an API call
-        # For now, we'll simulate a fetch and local save
-        
-        # Create maps directory if it doesn't exist
-        maps_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'maps')
-        if not os.path.exists(maps_dir):
-            os.makedirs(maps_dir)
-            
-        # Create subdirectory for entity type
-        entity_dir = os.path.join(maps_dir, entity_type + 's')
-        if not os.path.exists(entity_dir):
-            os.makedirs(entity_dir)
-            
-        # Define the local path where the map will be saved
-        local_path = os.path.join(entity_dir, f"{entity_id}.png")
-        
-        # In a real implementation, this would be an API call and file save
-        # For now, just update the database with the path
-        if self.db:
-            try:
-                # Update the entity's image_path in the database
-                table_name = entity_type + 's'
-                self.db.update_record(table_name, entity_id, {'image_path': local_path})
-                
-                # For demo purposes, we'll just show a message that the map would be fetched
-                # In a real implementation, we would download the image and then update the label
-                map_label.setText(f"{placeholder_text}\n\nMap would be fetched and saved to:\n{local_path}")
-                
-            except Exception as e:
-                logger.error(f"Error updating {entity_type} map path: {e}")
-                map_label.setText(f"{placeholder_text}\n\nError fetching map: {str(e)}")
-        else:
-            map_label.setText(f"{placeholder_text}\n\nNo database connection to save map location")
-    
-    def _find_parent_window(self, widget):
-        """Find the parent window of a widget."""
-        parent = widget.parent()
-        while parent:
-            if isinstance(parent, QWidget) and not parent.parent():
-                return parent
-            parent = parent.parent()
-        return None
-        
-    def _find_map_labels(self, map_tabs):
-        """Find all map-related labels in the UI.
-        
-        Args:
-            map_tabs: The QTabWidget containing the map tabs
             
         Returns:
-            Dictionary of UI elements keyed by their object names
+            HTML string with formatted system details
         """
-        if not map_tabs:
-            return {}
-            
-        result = {}
+        if not system_data:
+            return "<p>No system data available</p>"
         
-        # Find sector map tab
-        sector_map_tab = map_tabs.findChild(QWidget, "sector_map_tab")
-        if sector_map_tab:
-            sector_map_label = sector_map_tab.findChild(QLabel, "sector_map_label")
-            if sector_map_label:
-                result['sector_map_label'] = sector_map_label
+        system_name = system_data.get('name', UNKNOWN_SYSTEM)
+        system_hex = system_data.get('hex', 'Unknown')
+        system_uwp = system_data.get('uwp', 'Unknown')
         
-        # Find system map tab
-        system_map_tab = map_tabs.findChild(QWidget, "system_map_tab")
-        if system_map_tab:
-            system_map_label = system_map_tab.findChild(QLabel, "system_map_label")
-            if system_map_label:
-                result['system_map_label'] = system_map_label
+        html = f"""
+        <div style="font-family: Courier New; color: #00FF00; background-color: #0A0A0A;">
+            <h2 style="color: #AAFFAA;">{system_name}</h2>
+            <p><strong>Hex:</strong> {system_hex}</p>
+            <p><strong>UWP:</strong> {system_uwp}</p>
+        """
         
-        # Find planet map tab
-        planet_map_tab = map_tabs.findChild(QWidget, "planet_map_tab")
-        if planet_map_tab:
-            planet_map_label = planet_map_tab.findChild(QLabel, "planet_map_label")
-            if planet_map_label:
-                result['planet_map_label'] = planet_map_label
-                
-        return result
+        html += "</div>"
+        return html
 
-    
-    def _load_systems_for_sector(self, sector_data, systems_list, details_tabs):
-        """Load systems for the selected sector and populate the systems list.
+    def _format_planet_details(self, planet_data):
+        """Format planet details as HTML.
+        
+        Args:
+            planet_data: Dictionary containing planet information
+            
+        Returns:
+            HTML string with formatted planet details
+        """
+        if not planet_data:
+            return "<p>No planet data available</p>"
+        
+        planet_name = planet_data.get('name', 'Unknown Planet')
+        planet_type = planet_data.get('planet_type', 'Unknown')
+        planet_size = planet_data.get('size', 'Unknown')
+        planet_atmosphere = planet_data.get('atmosphere', 'Unknown')
+        planet_hydrographics = planet_data.get('hydrographics', 'Unknown')
+        planet_population = planet_data.get('population', 'Unknown')
+        
+        html = f"""
+        <div style="font-family: Courier New; color: #00FF00; background-color: #0A0A0A;">
+            <h2 style="color: #AAFFAA;">{planet_name}</h2>
+            <p><strong>Type:</strong> {planet_type}</p>
+            <p><strong>Size:</strong> {planet_size}</p>
+            <p><strong>Atmosphere:</strong> {planet_atmosphere}</p>
+            <p><strong>Hydrographics:</strong> {planet_hydrographics}</p>
+            <p><strong>Population:</strong> {planet_population}</p>
+        """
+        
+        html += "</div>"
+        return html
+
+    def _format_sector_details(self, sector_data):
+        """Format sector details as HTML.
         
         Args:
             sector_data: Dictionary containing sector information
-            systems_list: QListWidget to display systems in the sector
-            details_tabs: QTabWidget to switch to systems tab
+            
+        Returns:
+            HTML string with formatted sector details
         """
-        # Clear existing systems
-        systems_list.clear()
+        if not sector_data:
+            return "<p>No sector data available</p>"
         
-        # Load planets for this sector from database
-        planets = self.db.read_records(
-            'planets',
-            {'sector_id': sector_data['sector_id']},
-            ['planet_id', 'name', 'hex', 'UWP', 'starport', 'tech_level', 'subsector_id']
-        )
+        sector_name = sector_data.get('name', UNKNOWN_SECTOR)
+        location = sector_data.get('location', 'Unknown')
+        milieu = sector_data.get('milieu', 'Unknown')
+        subsector_count = sector_data.get('subsector_count', '0')
+        system_count = sector_data.get('system_count', '0')
+        description = sector_data.get('description', 'No description available.')
         
-        # Group planets by subsector and hex (to represent systems)
-        systems = {}
-        for planet in planets:
-            # Use hex as system identifier
-            system_key = planet.get('hex', '')
-            if not system_key:
-                continue
-                
-            # Create system entry if it doesn't exist
-            if system_key not in systems:
-                systems[system_key] = {
-                    'hex': system_key,
-                    'subsector_id': planet.get('subsector_id'),
-                    'planets': []
-                }
-            
-            # Add planet to system
-            systems[system_key]['planets'].append(planet)
+        html = f"""
+        <div style="{DETAILS_DIV_STYLE}">
+            <h2 style="{SECTION_HEADER_STYLE}">{sector_name}</h2>
+            <hr style="{SEPARATOR_STYLE}">
+            <p><strong>Location:</strong> {location}</p>
+            <p><strong>Milieu:</strong> {milieu}</p>
+            <p><strong>Subsector Count:</strong> {subsector_count}</p>
+            <p><strong>System Count:</strong> {system_count}</p>
+            <hr style="{SEPARATOR_STYLE}">
+            <h3 style="{SECTION_HEADER_STYLE}">Description:</h3>
+            <p>{description}</p>
+        </div>
+        """
         
-        # Add systems to list widget
-        for hex_code, system_data in sorted(systems.items()):
-            # Create list item for system
-            main_planet = system_data['planets'][0] if system_data['planets'] else {}
-            display_name = f"{hex_code}: {main_planet.get('name', 'Unknown')}"
-            
-            item = QListWidgetItem(display_name)
-            item.setData(Qt.ItemDataRole.UserRole, system_data)
-            systems_list.addItem(item)
-        
-        # If systems were found, switch to systems tab
-        if systems and details_tabs and len(systems) > 0:
-            details_tabs.setCurrentIndex(1)  # Switch to Systems tab
-    
-    def _generate_sector_map(self, scene, sector_data):
-        """Generate a visual representation of the sector.
+        return html
+
+    def _on_system_selected(self, current_item, system_details_widget=None, system_header_widget=None, system_map_scene=None, planet_list_widget=None):
+        """Handle system selection from the list.
         
         Args:
-            scene: QGraphicsScene to draw the map on
-            sector_data: Dictionary containing sector data
+            current_item: The selected QListWidgetItem or system data dictionary
+            system_details_widget: The QTextEdit widget to display system details
+            system_header_widget: The QLabel widget for the system header
+            system_map_scene: The QGraphicsScene for the system map
+            planet_list_widget: The QListWidget for planets in the system
         """
-        # Clear any existing items from the scene
-        scene.clear()
-        
-        # Set scene background color
-        scene.setBackgroundBrush(Qt.GlobalColor.black)
-        
-        # Set scene dimensions (standard Traveller sector is 8x10 subsectors)
-        scene_width = 400
-        scene_height = 320
-        scene.setSceneRect(0, 0, scene_width, scene_height)
-        
-        # Draw sector name as title
-        title_text = scene.addText(sector_data['name'])
-        title_text.setDefaultTextColor(Qt.GlobalColor.green)
-        title_text.setFont(QFont(FONT_FAMILY, 12, QFont.Weight.Bold))
-        title_text.setPos(10, 5)
-        
-        # Add sector abbreviation
-        if sector_data['abbreviation']:
-            abbrev_text = scene.addText(f"({sector_data['abbreviation']})")
-            abbrev_text.setDefaultTextColor(Qt.GlobalColor.green)
-            abbrev_text.setFont(QFont(FONT_FAMILY, 10))
-            abbrev_text.setPos(scene_width - 80, 5)
-        
-        # Draw subsector grid (8x10 standard Traveller sector)
-        subsector_width = scene_width / 4  # 4 subsectors across
-        subsector_height = scene_height / 4  # 4 subsectors down (with space for title)
-        
-        # Subsector grid
-        grid_pen = QPen(Qt.GlobalColor.darkGreen)
-        grid_pen.setWidth(1)
-        
-        # Draw subsector grid
-        for i in range(5):  # Horizontal lines (0-4)
-            y_pos = 40 + i * subsector_height
-            scene.addLine(0, y_pos, scene_width, y_pos, grid_pen)
+        try:
+            # Check if we have a valid widget to display details
+            if not system_details_widget or not hasattr(system_details_widget, 'setHtml'):
+                return
+                
+            if isinstance(current_item, dict):
+                system_data = current_item
+            elif current_item is None:
+                # Handle case when no item is selected
+                if system_details_widget:
+                    system_details_widget.setHtml(f"<p>{NO_SYSTEM_SELECTED}</p>")
+                if system_header_widget:
+                    system_header_widget.setText("Select a system")
+                if planet_list_widget:
+                    planet_list_widget.clear()
+                return
+            else:
+                # Handle QListWidgetItem
+                system_data = current_item.data(Qt.ItemDataRole.UserRole)
             
-        for i in range(5):  # Vertical lines (0-4)
-            x_pos = i * subsector_width
-            scene.addLine(x_pos, 40, x_pos, scene_height, grid_pen)
+            if not system_data:
+                # Handle empty system data
+                if system_details_widget:
+                    system_details_widget.setHtml(f"<p>{NO_SYSTEM_DATA}</p>")
+                if system_header_widget:
+                    system_header_widget.setText("No system data")
+                if planet_list_widget:
+                    planet_list_widget.clear()
+                return
+                
+            # Store the current system
+            self.current_system = system_data
+            
+            # Update the header
+            system_name = system_data.get('name', UNKNOWN_SYSTEM)
+            if system_header_widget:
+                system_header_widget.setText(f"System: {system_name}")
+            
+            # Format system details
+            system_details = self._format_system_details(system_data)
+            
+            # Update the system details widget
+            if system_details_widget:
+                system_details_widget.setHtml(system_details)
+                
+            # Update the system map if available
+            if system_map_scene:
+                system_map_scene.clear()
+                self._draw_system_map(system_data, system_map_scene)
+                
+            # Update planet list if available
+            if planet_list_widget:
+                planet_list_widget.clear()
+                
+                # Get planets for this system
+                system_id = system_data.get('id')
+                if system_id:
+                    planets = self.sectors_db.get_planets_for_system(system_id)
+                    
+                    if planets:
+                        for planet in planets:
+                            planet_name = planet.get('name', 'Unknown Planet')
+                            item = QListWidgetItem(planet_name)
+                            item.setData(Qt.ItemDataRole.UserRole, planet)
+                            planet_list_widget.addItem(item)
+                    else:
+                        # No planets available
+                        empty_item = QListWidgetItem("No planets available")
+                        empty_item.setData(Qt.ItemDataRole.UserRole, None)
+                        planet_list_widget.addItem(empty_item)
+            
+        except Exception as e:
+            logger.error(f"Error in _on_system_selected: {e}")
+            
+    def _on_planet_selected(self, current_item, planet_details_widget=None, planet_header_widget=None, planet_map_scene=None):
+        """Handle planet selection from the list.
         
-        # Label subsectors A-P (standard Traveller notation)
-        subsector_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-                           'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
+        Args:
+            current_item: The selected QListWidgetItem or planet data dictionary
+            planet_details_widget: The QTextEdit widget to display planet details
+            planet_header_widget: The QLabel widget for the planet header
+            planet_map_scene: The QGraphicsScene for the planet map
+        """
+        try:
+            # Check if we have a valid widget to display details
+            if not planet_details_widget or not hasattr(planet_details_widget, 'setHtml'):
+                return
+                
+            if isinstance(current_item, dict):
+                planet_data = current_item
+            elif current_item is None:
+                # Handle case when no item is selected
+                if planet_details_widget:
+                    planet_details_widget.setHtml("<p>No planet selected</p>")
+                if planet_header_widget:
+                    planet_header_widget.setText("Select a planet")
+                return
+            else:
+                # Handle QListWidgetItem
+                planet_data = current_item.data(Qt.ItemDataRole.UserRole)
+            
+            if not planet_data:
+                # Handle empty planet data
+                if planet_details_widget:
+                    planet_details_widget.setHtml("<p>No planet data available</p>")
+                if planet_header_widget:
+                    planet_header_widget.setText("No planet data")
+                return
+                
+            # Store the current planet
+            self.current_planet = planet_data
+            
+            # Update the header
+            planet_name = planet_data.get('name', 'Unknown Planet')
+            if planet_header_widget:
+                planet_header_widget.setText(f"Planet: {planet_name}")
+            
+            # Format planet details
+            planet_details = self._format_planet_details(planet_data)
+            
+            # Update the planet details widget
+            if planet_details_widget:
+                planet_details_widget.setHtml(planet_details)
+                
+            # Update the planet map if available
+            if planet_map_scene:
+                planet_map_scene.clear()
+                self._draw_planet_map(planet_data, planet_map_scene)
+            
+        except Exception as e:
+            logger.error(f"Error in _on_planet_selected: {e}")
+            
+    def _draw_system_map(self, system_data, scene):
+        """Draw a system map in the given scene.
         
-        for i in range(16):
-            row = i // 4
-            col = i % 4
-            label_text = scene.addText(subsector_labels[i])
-            label_text.setDefaultTextColor(Qt.GlobalColor.lightGray)
-            label_text.setFont(QFont(FONT_FAMILY, 8))
-            label_text.setPos(col * subsector_width + 5, 40 + row * subsector_height + 5)
+        Args:
+            system_data: Dictionary containing system information
+            scene: QGraphicsScene to draw the map in
+        """
+        try:
+            if not system_data or not scene:
+                return
+                
+            # Clear the scene
+            scene.clear()
+            
+            # Get system data
+            system_name = system_data.get('name', UNKNOWN_SYSTEM)
+            planets = system_data.get('planets', [])
+            
+            # Add system name as text
+            text_item = QGraphicsTextItem(f"System: {system_name}")
+            text_item.setDefaultTextColor(QColor(0, 255, 0))  # Green text
+            scene.addItem(text_item)
+            
+            # Draw the star at the center
+            star_radius = 20
+            star = QGraphicsEllipseItem(0, 0, star_radius * 2, star_radius * 2)
+            star.setBrush(QBrush(QColor(255, 255, 0)))  # Yellow star
+            star.setPos(scene.width() / 2 - star_radius, scene.height() / 2 - star_radius)
+            scene.addItem(star)
+            
+            # Draw planets in orbits around the star
+            if planets:
+                orbit_spacing = 40  # Space between orbits
+                for i, planet in enumerate(planets):
+                    orbit_radius = star_radius * 2 + (i + 1) * orbit_spacing
+                    
+                    # Draw orbit
+                    orbit = QGraphicsEllipseItem(
+                        scene.width() / 2 - orbit_radius,
+                        scene.height() / 2 - orbit_radius,
+                        orbit_radius * 2,
+                        orbit_radius * 2
+                    )
+                    orbit.setPen(QPen(QColor(100, 100, 100)))  # Gray orbit
+                    scene.addItem(orbit)
+                    
+                    # Draw planet
+                    planet_radius = 10
+                    planet_item = QGraphicsEllipseItem(0, 0, planet_radius * 2, planet_radius * 2)
+                    
+                    # Determine planet color based on type
+                    planet_type = planet.get('planet_type', '').lower()
+                    if 'gas' in planet_type:
+                        color = QColor(200, 200, 255)  # Light blue for gas giants
+                    elif 'water' in planet_type or 'ocean' in planet_type:
+                        color = QColor(0, 0, 255)  # Blue for water worlds
+                    elif 'desert' in planet_type:
+                        color = QColor(255, 200, 100)  # Tan for desert worlds
+                    elif 'ice' in planet_type:
+                        color = QColor(200, 255, 255)  # Light cyan for ice worlds
+                    else:
+                        color = QColor(100, 200, 100)  # Green for terrestrial planets
+                        
+                    planet_item.setBrush(QBrush(color))
+                    
+                    # Position planet on its orbit at a random angle
+                    import math
+                    import random
+                    angle = random.uniform(0, 2 * math.pi)
+                    planet_x = scene.width() / 2 + orbit_radius * math.cos(angle) - planet_radius
+                    planet_y = scene.height() / 2 + orbit_radius * math.sin(angle) - planet_radius
+                    planet_item.setPos(planet_x, planet_y)
+                    
+                    scene.addItem(planet_item)
+                    
+                    # Add planet name
+                    planet_name = planet.get('name', f"Planet {i+1}")
+                    name_item = QGraphicsTextItem(planet_name)
+                    name_item.setDefaultTextColor(QColor(200, 200, 200))  # Light gray text
+                    name_item.setPos(planet_x, planet_y + planet_radius * 2 + 5)
+                    scene.addItem(name_item)
+            else:
+                # No planets message
+                no_planets_text = QGraphicsTextItem("No planets in this system")
+                no_planets_text.setDefaultTextColor(QColor(200, 200, 200))  # Light gray text
+                no_planets_text.setPos(scene.width() / 2 - 100, scene.height() / 2 + 50)
+                scene.addItem(no_planets_text)
+                
+        except Exception as e:
+            logger.error(f"Error drawing system map: {e}")
+            # Add error message to the scene
+            error_text = QGraphicsTextItem(f"Error drawing map: {str(e)}")
+            error_text.setDefaultTextColor(QColor(255, 0, 0))  # Red text
+            scene.addItem(error_text)
+            
+    def _draw_planet_map(self, planet_data, scene):
+        """Draw a planet map in the given scene.
         
-        # If coordinates are available, highlight the sector's position in galactic grid
-        if sector_data['x_coordinate'] is not None and sector_data['y_coordinate'] is not None:
-            try:
-                x = int(sector_data['x_coordinate'])
-                y = int(sector_data['y_coordinate'])
+        Args:
+            planet_data: Dictionary containing planet information
+            scene: QGraphicsScene to draw the map in
+        """
+        try:
+            if not planet_data or not scene:
+                return
                 
-                # Add galactic position indicator
-                galactic_text = scene.addText(f"Galactic Position: ({x},{y})")
-                galactic_text.setDefaultTextColor(Qt.GlobalColor.yellow)
-                galactic_text.setFont(QFont(FONT_FAMILY, 9))
-                galactic_text.setPos(10, scene_height - 20)
+            # Clear the scene
+            scene.clear()
+            
+            # Get planet data
+            planet_name = planet_data.get('name', 'Unknown Planet')
+            planet_type = planet_data.get('planet_type', 'Unknown')
+            planet_size = planet_data.get('size', '?')
+            planet_atmosphere = planet_data.get('atmosphere', '?')
+            planet_hydrographics = planet_data.get('hydrographics', '?')
+            
+            # Add planet name as text
+            text_item = QGraphicsTextItem(f"Planet: {planet_name}")
+            text_item.setDefaultTextColor(QColor(0, 255, 0))  # Green text
+            scene.addItem(text_item)
+            
+            # Draw the planet
+            planet_radius = 100
+            planet = QGraphicsEllipseItem(0, 0, planet_radius * 2, planet_radius * 2)
+            
+            # Determine planet color based on type
+            if 'gas' in planet_type.lower():
+                color = QColor(200, 200, 255)  # Light blue for gas giants
+                # Add some bands
+                gradient = QRadialGradient(planet_radius, planet_radius, planet_radius)
+                gradient.setColorAt(0, QColor(220, 220, 255))
+                gradient.setColorAt(0.5, QColor(200, 200, 255))
+                gradient.setColorAt(1, QColor(180, 180, 235))
+                planet.setBrush(QBrush(gradient))
+            elif 'water' in planet_type.lower() or 'ocean' in planet_type.lower():
+                # Create a blue planet with some green continents
+                gradient = QRadialGradient(planet_radius, planet_radius, planet_radius)
+                gradient.setColorAt(0, QColor(0, 100, 255))
+                gradient.setColorAt(0.7, QColor(0, 80, 200))
+                gradient.setColorAt(1, QColor(0, 50, 150))
+                planet.setBrush(QBrush(gradient))
+            elif 'desert' in planet_type.lower():
+                # Create a tan desert planet
+                gradient = QRadialGradient(planet_radius, planet_radius, planet_radius)
+                gradient.setColorAt(0, QColor(255, 220, 150))
+                gradient.setColorAt(0.7, QColor(255, 200, 100))
+                gradient.setColorAt(1, QColor(200, 150, 50))
+                planet.setBrush(QBrush(gradient))
+            elif 'ice' in planet_type.lower():
+                # Create an ice planet
+                gradient = QRadialGradient(planet_radius, planet_radius, planet_radius)
+                gradient.setColorAt(0, QColor(255, 255, 255))
+                gradient.setColorAt(0.7, QColor(220, 240, 255))
+                gradient.setColorAt(1, QColor(200, 220, 255))
+                planet.setBrush(QBrush(gradient))
+            else:
+                # Default to an Earth-like planet
+                gradient = QRadialGradient(planet_radius, planet_radius, planet_radius)
+                gradient.setColorAt(0, QColor(100, 200, 100))
+                gradient.setColorAt(0.7, QColor(80, 180, 80))
+                gradient.setColorAt(1, QColor(50, 150, 50))
+                planet.setBrush(QBrush(gradient))
+            
+            # Position planet in center of scene
+            planet.setPos(scene.width() / 2 - planet_radius, scene.height() / 2 - planet_radius)
+            scene.addItem(planet)
+            
+            # Add planet details below
+            details_text = f"Type: {planet_type}\nSize: {planet_size}\nAtmosphere: {planet_atmosphere}\nHydrographics: {planet_hydrographics}"
+            details_item = QGraphicsTextItem(details_text)
+            details_item.setDefaultTextColor(QColor(200, 200, 200))  # Light gray text
+            details_item.setPos(scene.width() / 2 - 100, scene.height() / 2 + planet_radius + 20)
+            scene.addItem(details_item)
+            
+        except Exception as e:
+            logger.error(f"Error drawing planet map: {e}")
+            # Add error message to the scene
+            error_text = QGraphicsTextItem(f"Error drawing map: {str(e)}")
+            error_text.setDefaultTextColor(QColor(255, 0, 0))  # Red text
+            scene.addItem(error_text)
+            
+    def show_view(self, display_widget):
+        """Show the sector view in the given widget with the new layout design.
+        
+        Args:
+            display_widget: The widget to display the sector view in.
+        """
+        # Create a splitter for the main layout
+        main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # ===== LEFT PANEL =====
+        left_panel = QWidget()
+        left_layout = QVBoxLayout(left_panel)
+        left_panel.setMinimumWidth(300)  # Set minimum width for left panel
+    
+        # --- SECTOR SELECTOR SECTION ---
+        sector_section = QGroupBox("Sectors")
+        sector_layout = QVBoxLayout(sector_section)
+    
+        # Sector search box
+        sector_search_layout = QHBoxLayout()
+        sector_search_label = QLabel("Search Sectors:")
+        sector_search_label.setStyleSheet(HEADER_STYLE)
+        sector_search_input = QLineEdit()
+        sector_search_input.setStyleSheet(TERMINAL_STYLE)
+        sector_search_input.setPlaceholderText("Type to search sectors...")
+        sector_search_layout.addWidget(sector_search_label)
+        sector_search_layout.addWidget(sector_search_input)
+        sector_layout.addLayout(sector_search_layout)
+    
+        # Sector list
+        sector_list = QListWidget()
+        sector_list.setStyleSheet(TERMINAL_STYLE)
+        sector_list.setSortingEnabled(True)  # Enable alphabetical sorting
+        sector_layout.addWidget(sector_list)
+        
+        # --- SYSTEM SELECTOR SECTION ---
+        system_section = QGroupBox("Systems")
+        system_layout = QVBoxLayout(system_section)
+        
+        # System search box
+        system_search_layout = QHBoxLayout()
+        system_search_label = QLabel("Search Systems:")
+        system_search_label.setStyleSheet(HEADER_STYLE)
+        system_search_input = QLineEdit()
+        system_search_input.setStyleSheet(TERMINAL_STYLE)
+        system_search_input.setPlaceholderText("Type to search systems...")
+        system_search_layout.addWidget(system_search_label)
+        system_search_layout.addWidget(system_search_input)
+        system_layout.addLayout(system_search_layout)
+        
+        # System list
+        system_list = QListWidget()
+        system_list.setStyleSheet(TERMINAL_STYLE)
+        system_list.setSortingEnabled(True)  # Enable alphabetical sorting
+        system_layout.addWidget(system_list)
+        
+        # Add sections to left panel
+        left_layout.addWidget(sector_section, 1)  # 1 part for sectors
+        left_layout.addWidget(system_section, 1)  # 1 part for systems
+        
+        # ===== RIGHT PANEL =====
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        
+        # --- MAP SECTION ---
+        map_section = QGroupBox("Maps")
+        map_layout = QVBoxLayout(map_section)
+        
+        # Map tabs
+        map_tabs = QTabWidget()
+        map_tabs.setStyleSheet("QTabWidget::pane { border: 1px solid #004400; }")
+        
+        # Galactic Map tab
+        galactic_map_tab = QWidget()
+        galactic_map_layout = QVBoxLayout(galactic_map_tab)
+        galactic_map_view = QGraphicsView()
+        galactic_map_view.setStyleSheet(MAP_PLACEHOLDER_STYLE)
+        galactic_map_scene = QGraphicsScene()
+        galactic_map_view.setScene(galactic_map_scene)
+        galactic_map_layout.addWidget(galactic_map_view)
+        map_tabs.addTab(galactic_map_tab, "Galactic Map")
+        
+        # Sector Map tab
+        sector_map_tab = QWidget()
+        sector_map_layout = QVBoxLayout(sector_map_tab)
+        sector_map_view = QGraphicsView()
+        sector_map_view.setStyleSheet(MAP_PLACEHOLDER_STYLE)
+        sector_map_scene = QGraphicsScene()
+        sector_map_view.setScene(sector_map_scene)
+        sector_map_layout.addWidget(sector_map_view)
+        map_tabs.addTab(sector_map_tab, "Sector Map")
+        
+        # System Map tab
+        system_map_tab = QWidget()
+        system_map_layout = QVBoxLayout(system_map_tab)
+        system_map_view = QGraphicsView()
+        system_map_view.setStyleSheet(MAP_PLACEHOLDER_STYLE)
+        system_map_scene = QGraphicsScene()
+        system_map_view.setScene(system_map_scene)
+        system_map_layout.addWidget(system_map_view)
+        map_tabs.addTab(system_map_tab, "System Map")
+        
+        # Planet Map tab
+        planet_map_tab = QWidget()
+        planet_map_layout = QVBoxLayout(planet_map_tab)
+        planet_map_view = QGraphicsView()
+        planet_map_view.setStyleSheet(MAP_PLACEHOLDER_STYLE)
+        planet_map_scene = QGraphicsScene()
+        planet_map_view.setScene(planet_map_scene)
+        planet_map_layout.addWidget(planet_map_view)
+        map_tabs.addTab(planet_map_tab, "Planet Map")
+        
+        map_layout.addWidget(map_tabs)
+        
+        # --- INFO SECTION ---
+        info_section = QGroupBox("Information")
+        info_layout = QVBoxLayout(info_section)
+        
+        # Create a splitter for the three info boxes
+        info_splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Sector info box
+        sector_info_group = QGroupBox("Sector Info")
+        sector_info_layout = QVBoxLayout(sector_info_group)
+        sector_header = QLabel("Select a sector")
+        sector_header.setStyleSheet(HEADER_STYLE)
+        sector_details = QTextEdit()
+        sector_details.setReadOnly(True)
+        sector_details.setStyleSheet(TERMINAL_STYLE)
+        sector_info_layout.addWidget(sector_header)
+        sector_info_layout.addWidget(sector_details)
+        info_splitter.addWidget(sector_info_group)
+        
+        # System info box with system description
+        system_info_group = QGroupBox("System Info")
+        system_info_layout = QVBoxLayout(system_info_group)
+        system_header = QLabel("System Description")
+        system_header.setStyleSheet(HEADER_STYLE)
+        system_details = QTextEdit()
+        system_details.setReadOnly(True)
+        system_details.setStyleSheet(TERMINAL_STYLE)
+        system_info_layout.addWidget(system_header)
+        system_info_layout.addWidget(system_details)
+        
+        # Planet list and details in system info
+        planet_list_label = QLabel("Planets:")
+        planet_list_label.setStyleSheet(HEADER_STYLE)
+        planet_list = QListWidget()
+        planet_list.setStyleSheet(TERMINAL_STYLE)
+        planet_list.setSortingEnabled(True)  # Enable alphabetical sorting
+        planet_list.setMaximumHeight(150)  # Limit height
+        system_info_layout.addWidget(planet_list_label)
+        system_info_layout.addWidget(planet_list)
+        
+        # Planet details section within system info
+        planet_details_label = QLabel("Planet Details:")
+        planet_details_label.setStyleSheet(HEADER_STYLE)
+        planet_details = QTextEdit()
+        planet_details.setReadOnly(True)
+        planet_details.setStyleSheet(TERMINAL_STYLE)
+        system_info_layout.addWidget(planet_details_label)
+        system_info_layout.addWidget(planet_details)
+        
+        info_splitter.addWidget(system_info_group)
+        
+        # Set sizes for info boxes
+        info_splitter.setSizes([300, 700])
+        
+        info_layout.addWidget(info_splitter)
+        
+        # Add sections to right panel with more space for maps
+        right_layout.addWidget(map_section, 3)  # 3 parts for maps (larger proportion)
+        right_layout.addWidget(info_section, 1)  # 1 part for info (smaller proportion)
+        
+        # Add panels to main splitter
+        main_splitter.addWidget(left_panel)
+        main_splitter.addWidget(right_panel)
+        
+        # Set initial sizes to maximize map space
+        main_splitter.setSizes([250, 750])
+        
+        # Add the splitter to the display widget
+        layout = QVBoxLayout()
+        layout.addWidget(main_splitter)
+        layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins for more space
+        
+        # Clear any existing layout
+        if display_widget.layout():
+            # Remove all widgets from the layout
+            while display_widget.layout().count():
+                item = display_widget.layout().takeAt(0)
+                widget = item.widget()
+                if widget:
+                    widget.deleteLater()
+            # Delete the layout
+            QWidget().setLayout(display_widget.layout())
+            
+        display_widget.setLayout(layout)
+        
+        # Connect signals
+        sector_search_input.textChanged.connect(lambda text: self._filter_sectors(text, sector_list))
+        system_search_input.textChanged.connect(lambda text: self._filter_systems(text, system_list))
+        
+        sector_list.currentItemChanged.connect(
+            lambda current, previous: self._on_sector_selected(
+                current, sector_details, sector_header, sector_map_scene, system_list, system_header
+            )
+        )
+        
+        system_list.currentItemChanged.connect(
+            lambda current, previous: self._on_system_selected(
+                current, system_details, system_header, system_map_scene, planet_list
+            )
+        )
+        
+        planet_list.currentItemChanged.connect(
+            lambda current, previous: self._on_planet_selected(
+                current, planet_details, planet_header, planet_map_scene
+            )
+        )
+        
+        # Load sectors
+        self._load_sectors(sector_list, sector_details)
+        
+        # Store reference to the sector view widget
+        self.sectors_view_widget = SectorView(parent=display_widget)
+        
+        # Set up the sector view components after initialization
+        self.sectors_view_widget.set_db_path(self.db.db_path)
+        
+        # Store references to important widgets for later use
+        self.sector_list = sector_list
+        self.system_list = system_list
+        self.planet_list = planet_list
+        self.sector_details = sector_details
+        self.system_details = system_details
+        self.planet_details = planet_details
+        self.sector_header = sector_header
+        self.system_header = system_header
+        self.planet_header = planet_header
+        self.sector_map_scene = sector_map_scene
+        self.system_map_scene = system_map_scene
+        self.planet_map_scene = planet_map_scene
+        self.galactic_map_scene = galactic_map_scene
+        
+    def get_sectors_by_milieu(self, milieu):
+        """Get sectors filtered by milieu.
+        
+        Args:
+            milieu: The milieu code to filter by
+            
+        Returns:
+            List of sector records matching the specified milieu
+        """
+        try:
+            # Query the database for sectors with the specified milieu
+            sectors = self.sectors_db.get_sectors_by_milieu(milieu)
+            
+            if not sectors:
+                logger.warning(f"No sectors found for milieu: {milieu}")
+                return []
                 
-                # Add a small galactic position indicator
-                indicator_size = 60
-                indicator_x = scene_width - indicator_size - 10
-                indicator_y = 40
+            return sectors
+            
+        except Exception as e:
+            logger.error(f"Error getting sectors by milieu: {e}")
+            return []
+            
+    def _load_sectors(self, list_widget, details_widget, milieu=None):
+        """Load sectors from the database into the list widget.
+        
+        Args:
+            list_widget: The QListWidget to populate with sectors
+            details_widget: The QTextEdit to show sector details
+            milieu: Optional milieu code to filter sectors by
+        """
+        try:
+            # Clear the list
+            list_widget.clear()
+            
+            # Get sectors from the database
+            if milieu:
+                sectors = self.sectors_db.get_sectors_by_milieu(milieu)
+            else:
+                sectors = self.sectors_db.get_all_sectors()
                 
-                # Draw indicator box
-                scene.addRect(indicator_x, indicator_y, indicator_size, indicator_size, 
-                             QPen(Qt.GlobalColor.yellow), QBrush(Qt.GlobalColor.transparent))
+            if not sectors:
+                logger.warning("No sectors found in database")
+                return
                 
-                # Draw center point (this sector)
-                center_x = indicator_x + indicator_size/2
-                center_y = indicator_y + indicator_size/2
-                scene.addEllipse(center_x-3, center_y-3, 6, 6, 
-                               QPen(Qt.GlobalColor.yellow), 
-                               QBrush(Qt.GlobalColor.yellow))
+            # Add sectors to the list
+            for sector in sectors:
+                sector_name = sector.get('name', UNKNOWN_SECTOR)
+                item = QListWidgetItem(sector_name)
+                item.setData(Qt.ItemDataRole.UserRole, sector)
+                list_widget.addItem(item)
                 
-                # Label as "Current"
-                current_text = scene.addText("Current")
-                current_text.setDefaultTextColor(Qt.GlobalColor.yellow)
-                current_text.setFont(QFont(FONT_FAMILY, 7))
-                current_text.setPos(indicator_x + 5, indicator_y + indicator_size + 5)
+            # Select the first item
+            if list_widget.count() > 0:
+                list_widget.setCurrentRow(0)
                 
-            except (ValueError, TypeError):
-                # Handle invalid coordinate values
-                pass
+        except Exception as e:
+            logger.error(f"Error loading sectors: {e}")
+            
+    def _filter_sectors(self, text, list_widget):
+        """Filter sectors by name based on search text.
+        
+        Args:
+            text: The search text
+            list_widget: The QListWidget to filter
+        """
+        try:
+            # Get all sectors
+            sectors = self.sectors_db.get_all_sectors()
+            
+            # Clear the list
+            list_widget.clear()
+            
+            if not text:
+                # If no search text, show all sectors
+                for sector in sectors:
+                    sector_name = sector.get('name', UNKNOWN_SECTOR)
+                    item = QListWidgetItem(sector_name)
+                    item.setData(Qt.ItemDataRole.UserRole, sector)
+                    list_widget.addItem(item)
+            else:
+                # Filter sectors by name
+                for sector in sectors:
+                    sector_name = sector.get('name', UNKNOWN_SECTOR)
+                    if text.lower() in sector_name.lower():
+                        item = QListWidgetItem(sector_name)
+                        item.setData(Qt.ItemDataRole.UserRole, sector)
+                        list_widget.addItem(item)
+                    
+        except Exception as e:
+            logger.error(f"Error filtering sectors: {e}")
+        
+        # Sort the list alphabetically
+        list_widget.sortItems()
+        
+    def _filter_systems(self, text, list_widget):
+        """Filter systems by name based on search text.
+        
+        Args:
+            text: The search text
+            list_widget: The QListWidget to filter
+        """
+        try:
+            # Check if we have a current sector
+            if not hasattr(self, 'current_sector') or not self.current_sector:
+                return
                 
+            sector_id = self.current_sector.get('id')
+            if not sector_id:
+                return
+                
+            # Get systems for the current sector
+            systems = self.sectors_db.get_systems_for_sector(sector_id)
+            
+            # Clear the list
+            list_widget.clear()
+            
+            if not systems:
+                # No systems available
+                empty_item = QListWidgetItem(NO_SYSTEMS_AVAILABLE)
+                empty_item.setData(Qt.ItemDataRole.UserRole, None)
+                list_widget.addItem(empty_item)
+                return
+                
+            if not text:
+                # If no search text, show all systems for this sector
+                for system in systems:
+                    system_name = system.get('name', UNKNOWN_SYSTEM)
+                    item = QListWidgetItem(system_name)
+                    item.setData(Qt.ItemDataRole.UserRole, system)
+                    list_widget.addItem(item)
+            else:
+                # Filter systems by name
+                for system in systems:
+                    system_name = system.get('name', UNKNOWN_SYSTEM)
+                    if text.lower() in system_name.lower():
+                        item = QListWidgetItem(system_name)
+                        item.setData(Qt.ItemDataRole.UserRole, system)
+                        list_widget.addItem(item)
+                    
+        except Exception as e:
+            logger.error(f"Error filtering systems: {e}")
+        
+        # Sort the list alphabetically
+        list_widget.sortItems()
+            
+    def _populate_systems_for_sector(self, sector_data):
+        """Populate all systems and planets for a sector from API data.
+        
+        Args:
+            sector_data: Dictionary containing sector information
+        """
+        try:
+            sector_id = sector_data.get('id')
+            if not sector_id:
+                logger.error("No sector ID provided for populating systems")
+                return
+                
+            # Get systems for this sector
+            systems = self.sectors_db.get_systems_for_sector(sector_id)
+            
+            if not systems:
+                logger.warning(f"No systems found for sector ID: {sector_id}")
+                return
+                
+            # For each system, get and store its planets
+            for system in systems:
+                system_id = system.get('id')
+                if system_id:
+                    # Check if planets already exist for this system
+                    existing_planets = self.sectors_db.get_planets_for_system(system_id)
+                    
+                    if not existing_planets:
+                        # Fetch planets from API or generate them
+                        planets = self.sectors_db.generate_planets_for_system(system)
+                        
+                        # Store planets in database
+                        if planets:
+                            for planet in planets:
+                                self.sectors_db.add_planet(planet)
+                                
+        except Exception as e:
+            logger.error(f"Error populating systems for sector: {e}")
+            
+    def _filter_sectors(self, search_text, list_widget):
+        """Filter the sectors list based on search text.
+        
+        Args:
+            search_text: Text to search for in sector names
+            list_widget: The QListWidget containing sector items
+        """
+        # Show all items if search text is empty
+        if not search_text:
+            for i in range(list_widget.count()):
+                list_widget.item(i).setHidden(False)
+            return
+            
+        # Hide items that don't match the search text
+        search_text = search_text.lower()
+        for i in range(list_widget.count()):
+            item = list_widget.item(i)
+            item_text = item.text().lower()
+            item.setHidden(search_text not in item_text)
+            
+    def _on_sector_selected(self, current_item, details_widget=None, header_widget=None, map_scene=None, systems_list=None, system_header=None):
+        """Handle sector selection from the list.
+        
+        Args:
+            current_item: The selected QListWidgetItem
+            details_widget: The QTextEdit widget to display sector details
+            header_widget: The QLabel widget for the sector header
+            map_scene: The QGraphicsScene for the sector map
+            systems_list: The QListWidget for systems in the sector
+            system_header: The QLabel widget for the system header
+        """
+        try:
+            # Check if we have a valid item
+            if not current_item:
+                if header_widget:
+                    header_widget.setText("Select a sector")
+                if details_widget:
+                    details_widget.setHtml("<p>No sector selected</p>")
+                if systems_list:
+                    systems_list.clear()
+                if system_header:
+                    system_header.setText("Select a system")
+                return
+                
+            # Get the sector data from the item
+            sector_data = current_item.data(Qt.ItemDataRole.UserRole)
+            if not sector_data:
+                if header_widget:
+                    header_widget.setText("No sector data")
+                if details_widget:
+                    details_widget.setHtml("<p>No sector data available</p>")
+                if systems_list:
+                    systems_list.clear()
+                if system_header:
+                    system_header.setText("Select a system")
+                return
+                
+            # Store the current sector
+            self.current_sector = sector_data
+            
+            # Update the sector header
+            if header_widget:
+                sector_name = sector_data.get('name', UNKNOWN_SECTOR)
+                header_widget.setText(f"Sector: {sector_name}")
+            
+            # Format and display sector details
+            if details_widget:
+                sector_details = self._format_sector_details(sector_data)
+                details_widget.setHtml(sector_details)
+            
+            # Update the sector map
+            if map_scene:
+                map_scene.clear()
+                self._draw_sector_map(sector_data, map_scene)
+            
+            # Get systems for this sector
+            sector_id = sector_data.get('id')
+            if sector_id:
+                # Load systems into the systems list
+                systems = self.sectors_db.get_systems_for_sector(sector_id)
+                
+                # Clear the systems list
+                if systems_list:
+                    systems_list.clear()
+                if systems:
+                    for system in systems:
+                        system_name = system.get('name', UNKNOWN_SYSTEM)
+                        item = QListWidgetItem(system_name)
+                        item.setData(Qt.ItemDataRole.UserRole, system)
+                        systems_list.addItem(item)
+                        
+                    # Switch to the systems tab
+                    info_tabs.setCurrentIndex(2)  # Index 2 should be the Systems tab
+                    
+                    # Select the first system
+                    if systems_list.count() > 0:
+                        systems_list.setCurrentRow(0)
+                else:
+                    # Handle case where sector has no systems
+                    info_tabs.setCurrentIndex(0)  # Switch to Details tab
+                    empty_item = QListWidgetItem("No systems available")
+                    empty_item.setData(Qt.ItemDataRole.UserRole, None)
+                    systems_list.addItem(empty_item)
+            
+            # Emit the sector_changed signal with the sector data
+            self.sector_changed.emit(sector_data)
+        except Exception as e:
+            logger.error(f"Error handling sector selection: {e}")
+            if header_widget:
+                header_widget.setText("Error loading sector")
+            if details_widget:
+                details_widget.setHtml(f"<p>Error: {e}</p>")
+            if systems_list:
+                systems_list.clear()
+            if system_header:
+                system_header.setText("Select a system")
+    def _draw_sector_map(self, sector_data, scene):
+        """Draw the sector map in the given scene.
+        
+        Args:
+            sector_data: Dictionary containing sector information
+            scene: QGraphicsScene to draw the map in
+        """
+        try:
+            # Clear the scene
+            scene.clear()
+            
+            # Get sector dimensions
+            sector_width = 800
+            sector_height = 600
+            
+            # Set scene size
+            scene.setSceneRect(0, 0, sector_width, sector_height)
+            
+            # Draw background
+            scene.addRect(0, 0, sector_width, sector_height, 
+                         QPen(Qt.GlobalColor.darkGreen), 
+                         QBrush(QColor(10, 20, 10)))
+            
+            # Get systems for this sector
+            sector_id = sector_data.get('id')
+            if not sector_id:
+                return
+                
+            systems = self.sectors_db.get_systems_for_sector(sector_id)
+            
+            if not systems:
+                # Add placeholder text
+                text = scene.addText("No systems data available")
+                text.setDefaultTextColor(Qt.GlobalColor.green)
+                text.setPos(sector_width/2 - 100, sector_height/2 - 10)
+                return
+                
+            # Calculate grid size
+            grid_size = min(sector_width / 10, sector_height / 10)
+            
+            # Draw grid
+            pen = QPen(QColor(0, 100, 0))
+            for x in range(0, sector_width, int(grid_size)):
+                scene.addLine(x, 0, x, sector_height, pen)
+            for y in range(0, sector_height, int(grid_size)):
+                scene.addLine(0, y, sector_width, y, pen)
+                
+            # Add coordinate labels
+            for i in range(10):
+                # Horizontal labels (numbers)
+                label = scene.addText(str(i))
+                label.setDefaultTextColor(Qt.GlobalColor.green)
+                label.setPos(i * grid_size + grid_size/2, 5)
+                
+                # Vertical labels (letters)
+                label = scene.addText(chr(65 + i))  # A, B, C, ...
+                label.setDefaultTextColor(Qt.GlobalColor.green)
+                label.setPos(5, i * grid_size + grid_size/2)
+                
+            # Draw systems
+            for system in systems:
+                try:
+                    # Get hex coordinates
+                    hex_coord = system.get('hex', '')
+                    if not hex_coord or len(hex_coord) < 4:
+                        continue
+                        
+                    # Parse hex coordinates (format: XXYY)
+                    x = int(hex_coord[0:2])
+                    y = int(hex_coord[2:4])
+                    
+                    # Calculate position on grid
+                    pos_x = x * grid_size
+                    pos_y = y * grid_size
+                    
+                    # Draw system dot
+                    dot_size = 10
+                    scene.addEllipse(pos_x - dot_size/2, pos_y - dot_size/2, dot_size, dot_size, 
+                                   QPen(Qt.GlobalColor.yellow), 
+                                   QBrush(Qt.GlobalColor.yellow))
+                    
+                    # Add system name
+                    system_name = system.get('name', 'Unknown')
+                    text = scene.addText(system_name)
+                    text.setDefaultTextColor(Qt.GlobalColor.green)
+                    text.setFont(QFont(FONT_FAMILY, 7))
+                    text.setPos(pos_x + 5, pos_y - 15)
+                    
+                except (ValueError, TypeError):
+                    # Skip systems with invalid coordinates
+                    continue
+                    
+            # Add sector name at the top
+            sector_name = sector_data.get('name', UNKNOWN_SECTOR)
+            title = scene.addText(sector_name)
+            title.setDefaultTextColor(Qt.GlobalColor.green)
+            title.setFont(QFont(FONT_FAMILY, 12, QFont.Weight.Bold))
+            title.setPos(10, 10)
+            
+            # Add galactic coordinates if available
+            galactic_coords = sector_data.get('location', '')
+            if galactic_coords:
+                try:
+                    scene_height = sector_height
+                    galactic_text = scene.addText(f"Galactic: {galactic_coords}")
+                    galactic_text.setDefaultTextColor(Qt.GlobalColor.green)
+                    galactic_text.setFont(QFont(FONT_FAMILY, 8))
+                    galactic_text.setPos(10, scene_height - 20)
+                    
+                    # Add a small galactic position indicator
+                    indicator_size = 60
+                    indicator_x = sector_width - indicator_size - 10
+                    indicator_y = 40
+                    
+                    # Draw indicator box
+                    scene.addRect(indicator_x, indicator_y, indicator_size, indicator_size, 
+                                 QPen(Qt.GlobalColor.yellow), QBrush(Qt.GlobalColor.transparent))
+                    
+                    # Draw center point (this sector)
+                    center_x = indicator_x + indicator_size/2
+                    center_y = indicator_y + indicator_size/2
+                    scene.addEllipse(center_x-3, center_y-3, 6, 6, 
+                                   QPen(Qt.GlobalColor.yellow), 
+                                   QBrush(Qt.GlobalColor.yellow))
+                    
+                    # Label as "Current"
+                    current_text = scene.addText("Current")
+                    current_text.setDefaultTextColor(Qt.GlobalColor.yellow)
+                    current_text.setFont(QFont(FONT_FAMILY, 7))
+                    current_text.setPos(indicator_x + 5, indicator_y + indicator_size + 5)
+                except (ValueError, TypeError):
+                    # Handle invalid coordinate values
+                    pass
+        except Exception as e:
+            logger.error(f"Error drawing sector map: {e}")
+        
     def _on_search_requested(self, search_text):
         """Handle search requests from the sector view.
         
@@ -903,10 +1195,10 @@ class SectorController(QObject):
             return
             
         # Search for sectors matching the text
-        matching_sectors = self.db.search_sectors(search_text)
+        matching_sectors = self.sectors_db.search_sectors(search_text)
         
         # Search for systems matching the text
-        matching_systems = self.db.search_systems(search_text)
+        matching_systems = self.sectors_db.search_systems(search_text)
         
         # Update the sector view with search results
         if matching_sectors:
@@ -923,9 +1215,41 @@ class SectorController(QObject):
             system = matching_systems[0]
             sector_id = system.get('sector_id')
             if sector_id:
-                sector = self.db.get_sector_by_id(sector_id)
+                sector = self.sectors_db.get_sector_by_id(sector_id)
                 if sector:
                     self.sectors_view_widget.set_sector(sector)
                     # Filter to show only matching systems in this sector
                     systems_in_sector = [s for s in matching_systems if s.get('sector_id') == sector_id]
                     self.sectors_view_widget.set_systems(systems_in_sector)
+                    
+    def _format_planet_details_text(self, system_data, planets):
+        """Format planet details as plain text.
+        
+        Args:
+            system_data: Dictionary containing system information
+            planets: List of planet dictionaries
+            
+        Returns:
+            Plain text string with formatted planet details
+        """
+        if not system_data:
+            return "No system data available"
+        
+        system_name = system_data.get('name', UNKNOWN_SYSTEM)
+        system_hex = system_data.get('hex', 'Unknown')
+        system_uwp = system_data.get('uwp', 'Unknown')
+        
+        text = f"SYSTEM: {system_name}\n"
+        text += f"HEX: {system_hex}\n"
+        text += f"UWP: {system_uwp}\n"
+        
+        if planets:
+            text += "\nPLANETS:\n"
+            for planet in planets:
+                planet_name = planet.get('name', 'Unknown')
+                planet_type = planet.get('planet_type', 'Unknown')
+                text += f"  {planet_name} ({planet_type})\n"
+        else:
+            text += "\nNo planets found for this system.\n"
+        
+        return text

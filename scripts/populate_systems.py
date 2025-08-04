@@ -272,11 +272,15 @@ def update_existing_system(db, system_data_copy, columns, existing_systems, plan
     system_id = existing_system.get("system_id") or existing_system.get("id")
     db.update_record("systems", system_data_copy, {"system_id": system_id})
     system_type = "synthetic" if is_synthetic else ""
-    logger.debug(f"Updated {system_type} system {system_data_copy['name']} (ID: {system_id})")
+    print(f"Successfully updated {system_type} system '{system_data_copy['name']}' (ID: {system_id})")
+    logger.info(f"Updated {system_type} system {system_data_copy['name']} (ID: {system_id})")
     
     # Insert or update planets for this system
     if planets:
+        num_planets = len(planets)
+        print(f"Updating {num_planets} planets for system '{system_data_copy['name']}'")
         insert_planets_for_system(db, planets, system_id)
+        print(f"Successfully updated {num_planets} planets for system '{system_data_copy['name']}'")
         
     return system_id, False
 
@@ -317,9 +321,12 @@ def insert_new_system(db, system_data_copy, columns, sector_id, sector_name, pla
     db.create_record("sector_has_system", relationship_data)
     system_type = "synthetic" if is_synthetic else ""
     logger.debug(f"Added {system_type} system {system_data_copy['name']} (ID: {system_id}) to sector {sector_name}")
+    print(f"CONSOLE: Added {system_type} system {system_data_copy['name']} (ID: {system_id}) to sector {sector_name}")
     
     # Insert planets for this system
     if planets:
+        print(f"PLANETS: Inserting planets for system {system_data_copy['name']} ({system_data_copy['hex']})")
+        print(f"CONSOLE: Processing planets for system {system_data_copy['name']} at {system_data_copy['hex']}")
         insert_planets_for_system(db, planets, system_id)
         
     return system_id, True
@@ -470,6 +477,7 @@ def update_existing_planet(db, planet_data, existing_planets, columns):
     planet_id = existing_planet.get("planet_id") or existing_planet.get("id")
     db.update_record("planets", planet_data, {"planet_id": planet_id})
     logger.debug(f"Updated planet {planet_data['name']} (ID: {planet_id})")
+    print(f"CONSOLE: Updated planet {planet_data['name']} (ID: {planet_id})")
     return planet_id
 
 def insert_new_planet(db, planet_data, system_id, columns):
@@ -504,6 +512,7 @@ def insert_new_planet(db, planet_data, system_id, columns):
     }
     db.create_record("system_has_planet", relationship_data)
     logger.debug(f"Added planet {planet_data['name']} (ID: {planet_id}) to system ID: {system_id}")
+    print(f"CONSOLE: Added planet {planet_data['name']} (ID: {planet_id}) to system ID: {system_id}")
     return planet_id, True
 
 def insert_planets_for_system(db, planets, system_id):
@@ -518,32 +527,52 @@ def insert_planets_for_system(db, planets, system_id):
     Returns:
         Number of planets added
     """
+    ensure_planet_tables_exist(db)
+    
+    # Get column names for the planets table
+    columns = get_column_names(db, "planets")
+    
+    # Get existing planets for this system
+    existing_planets = db.read_records("system_has_planet", {"system_id": system_id})
+    existing_planet_ids = [p[0] for p in existing_planets]  # Assuming first column is planet_id
+    
     planets_added = 0
+    planets_updated = 0
     
-    try:
-        # Ensure tables exist
-        ensure_planet_tables_exist(db)
-    
-        # Get column names to map tuple values to dictionary keys
-        columns = get_column_names(db, "planets")
-        
-        for planet_data in planets:
-            try:
-                # Check if planet already exists
-                existing_planets = db.read_records("planets", {"name": planet_data["name"], "system_hex": planet_data["system_hex"]})
+    for planet_data in planets:
+        try:
+            # Make a copy to avoid modifying the original
+            planet_data = planet_data.copy()
+            planet_name = planet_data.get("name", planet_data.get("planet_name", "Unknown"))
+            
+            # Check if planet already exists for this system
+            planet_exists = any(p for p in existing_planets 
+                              if p[1] == planet_name or  # Assuming second column is name
+                                 p[1] == planet_data.get("planet_name"))
+            
+            if planet_exists:
+                # Update existing planet
+                planet_id = update_existing_planet(db, planet_data, existing_planets, columns)
+                print(f"Updated planet '{planet_name}' (ID: {planet_id}) in system ID {system_id}")
+                logger.info(f"Updated planet {planet_name} (ID: {planet_id}) in system ID {system_id}")
+                planets_updated += 1
+            else:
+                # Insert new planet
+                planet_id, success = insert_new_planet(db, planet_data, system_id, columns)
+                if success:
+                    print(f"Added new planet '{planet_name}' (ID: {planet_id}) to system ID {system_id}")
+                    logger.info(f"Added new planet {planet_name} (ID: {planet_id}) to system ID {system_id}")
+                    planets_added += 1
                 
-                if existing_planets:
-                    update_existing_planet(db, planet_data, existing_planets, columns)
-                else:
-                    _, success = insert_new_planet(db, planet_data, system_id, columns)
-                    if success:
-                        planets_added += 1
-            except Exception as e:
-                logger.error(f"Error inserting planet {planet_data['name']}: {e}")
-    except Exception as e:
-        logger.error(f"Error setting up planet tables: {e}")
-        
-    logger.info(f"Added {planets_added} planets to system ID: {system_id}")
+        except Exception as e:
+            error_msg = f"Error processing planet {planet_name}: {e}"
+            print(f"ERROR: {error_msg}")
+            logger.error(error_msg, exc_info=True)
+    
+    # Log summary of planet operations
+    if planets_added or planets_updated:
+        print(f"Planet update summary - Added: {planets_added}, Updated: {planets_updated}")
+    
     return planets_added
 
 def insert_systems_batch(db, systems, sector_id, sector_name, is_synthetic=False):
@@ -569,6 +598,8 @@ def insert_systems_batch(db, systems, sector_id, sector_name, is_synthetic=False
     
     system_type = "synthetic" if is_synthetic else ""
     logger.info(f"Added {systems_added} new {system_type} systems to sector {sector_name}")
+    print(f"SYSTEMS POPULATED: Added {systems_added} systems to sector {sector_name}")
+    print(f"CONSOLE: Successfully processed {systems_added} systems for sector {sector_name}")
     return systems_added
 
 def populate_systems_for_sector(api, db, sector_data, milieu=None):
@@ -592,29 +623,53 @@ def populate_systems_for_sector(api, db, sector_data, milieu=None):
         return 0
     
     logger.info(f"Fetching systems for sector: {sector_name} (ID: {sector_id})")
-    
+    print(f"FETCHING SYSTEMS: Starting system population for sector: {sector_name} (ID: {sector_id})")
     try:
-        # Get sector data in T5 format
+        print(f"CONSOLE: Starting population for sector {sector_name}")
+        
+        # Use T5 format to get actual system data
+        print(f"CONSOLE: Fetching T5 data for sector {sector_name}")
         t5_data = api.get_sector_t5(sector_name, milieu)
         
-        # Parse system data from T5 format
-        systems = []
-        for line in t5_data.splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            
-            system_data = parse_system_data(sector_name, line)
-            if system_data:
-                systems.append(system_data)
+        # Parse T5 data to extract systems
+        systems = api._parse_t5_systems(t5_data)
+        
+        print(f"CONSOLE: Parsed {len(systems)} systems from T5 data")
+        
+        if not systems:
+            logger.warning(f"No systems found for sector {sector_name}")
+            print(f"CONSOLE: No systems found for sector {sector_name}")
+            return 0
         
         logger.info(f"Found {len(systems)} systems in sector {sector_name}")
+        print(f"CONSOLE: Found {len(systems)} systems in sector {sector_name}")
+        print(f"CONSOLE: Processing {len(systems)} systems for sector {sector_name}")
+        
+        # T5 data is already in correct format, just add sector info
+        # Filter system data to only include valid system-level columns
+        valid_system_columns = {
+            'name', 'hex', 'uwp', 'bases', 'zone', 'pbg', 'allegiance_code', 
+            'stellar_data', 'x', 'y', 'description', 'image_path', 'trade_codes'
+        }
+        
+        formatted_systems = []
+        for system in systems:
+            # Only keep valid system-level columns
+            filtered_system = {k: v for k, v in system.items() if k in valid_system_columns}
+            filtered_system['sector_id'] = sector_id
+            filtered_system['milieu'] = milieu
+            formatted_systems.append(filtered_system)
+        
+        print(f"CONSOLE: Successfully formatted {len(formatted_systems)} systems for processing")
         
         # Insert systems into database
-        return insert_systems_batch(db, systems, sector_id, sector_name)
+        systems_added = insert_systems_batch(db, formatted_systems, sector_id, sector_name)
+        print(f"CONSOLE: Successfully processed {systems_added} systems for sector {sector_name}")
+        return systems_added
     
     except Exception as e:
-        logger.error(f"Error fetching T5 data for sector {sector_name}: {e}")
+        logger.error(f"Error populating systems for sector {sector_name}: {e}")
+        print(f"ERROR: Failed to populate systems for sector {sector_name}: {e}")
         logger.info(f"Falling back to synthetic system generation for sector {sector_name}")
         
         # Generate synthetic system data as fallback

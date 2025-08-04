@@ -302,35 +302,34 @@ class SectorView(QWidget):
     def _setup_ui(self):
         """Set up the UI components."""
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # Use full available space
         
-        # Sector header
+        # Sector header with milieu selector
         header_layout = QHBoxLayout()
         self.sector_header = QLabel("Select a Sector")
         self.sector_header.setStyleSheet("font-size: 16pt; font-weight: bold;")
         header_layout.addWidget(self.sector_header)
-        header_layout.addStretch()
         
-        main_layout.addLayout(header_layout)
-        
-        # Create a splitter for the main content
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setChildrenCollapsible(False)  # Prevent panels from being collapsed
-        main_layout.addWidget(splitter, 1)  # Give the splitter a stretch factor
-        
-        # Left panel - Sectors list with search
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 0, 0)  # Reduce margins for more space
-        
-        # Milieu selector
-        milieu_layout = QHBoxLayout()
+        # Add milieu selector to header for better space usage
         milieu_label = QLabel("Milieu:")
         self.milieu_selector = QComboBox()
         self._populate_milieu_selector()
         self.milieu_selector.currentTextChanged.connect(self._on_milieu_changed)
-        milieu_layout.addWidget(milieu_label)
-        milieu_layout.addWidget(self.milieu_selector, 1)  # Give the selector more space
-        left_layout.addLayout(milieu_layout)
+        header_layout.addStretch()
+        header_layout.addWidget(milieu_label)
+        header_layout.addWidget(self.milieu_selector)
+        
+        main_layout.addLayout(header_layout)
+        
+        # Create a splitter for the main content - use a 3-panel layout for better space usage
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setChildrenCollapsible(False)  # Prevent panels from being collapsed
+        main_layout.addWidget(splitter, 1)  # Give the splitter a stretch factor
+        
+        # Left panel - Sectors and systems lists
+        left_panel = QWidget()
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(0, 0, 0, 0)  # Reduce margins for more space
         
         # Create a vertical splitter for sectors and systems lists
         lists_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -412,19 +411,20 @@ class SectorView(QWidget):
         right_splitter = QSplitter(Qt.Orientation.Vertical)
         right_splitter.setChildrenCollapsible(False)  # Prevent panels from being collapsed
         
-        # Map area (top)
-        map_widget = QWidget()
-        map_layout = QVBoxLayout(map_widget)
-        map_layout.setContentsMargins(0, 0, 0, 0)  # Reduce margins
+        # Middle panel - Map and system details - make it larger
+        middle_panel = QWidget()
+        middle_layout = QVBoxLayout(middle_panel)
+        middle_layout.setContentsMargins(0, 0, 0, 0)  # Reduce margins
         
-        # Map tabs widget
-        from view.map_tabs_widget import MapTabsWidget
-        self.map_tabs = MapTabsWidget(db_path=self.db_path)
-        self.map_tabs.system_selected.connect(self._on_map_system_selected)
-        self.map_tabs.planet_selected.connect(self.planet_selected.emit)
-        map_layout.addWidget(self.map_tabs)
+        # Map widget - expanded to use more space
+        self.map_widget = SectorMapWidget()
+        self.map_widget.setMinimumSize(800, 600)  # Larger minimum size
+        self.map_widget.system_selected.connect(self._on_map_system_selected)
+        self.map_widget.map_error.connect(self._on_map_error)
+        middle_layout.addWidget(self.map_widget, 3)  # Give the map even more space
         
-        right_splitter.addWidget(map_widget)
+        # Add middle panel to splitter
+        right_splitter.addWidget(middle_panel)
         
         # Info area (bottom) will be added in the MapTabsWidget redesign
         
@@ -489,25 +489,64 @@ class SectorView(QWidget):
             self.sectors_list.addItem(item)
             
     def _update_systems_list(self, systems=None, search_text=""):
-        """Update the systems list with the given systems and filtering."""
+        """Update the systems list with the given systems and filtering.
+        
+        Args:
+            systems: List of system dictionaries to display. If None, uses self.systems.
+            search_text: Optional text to filter systems by name (case-insensitive).
+        """
         if systems is None:
             systems = self.systems
             
         self.systems_list.clear()
         
-        # Filter systems by search text
-        if search_text:
-            search_text = search_text.lower()
-            systems = [s for s in systems if search_text in s.get("name", "").lower()]
-        
-        # Filter out unnamed systems if checkbox is checked
-        if hasattr(self, 'hide_unnamed_checkbox') and self.hide_unnamed_checkbox.isChecked():
-            systems = [s for s in systems if s.get("name") and not s.get("name").startswith("Unnamed")]
-        
+        filtered_systems = []
         for system in systems:
+            # Skip invalid or empty systems
+            if not system or not isinstance(system, dict):
+                continue
+                
+            # Get system details
+            name = system.get("name", "")
+            hex_code = system.get("hex", "")  # Changed from "hex_code" to match DB schema
+            uwp = system.get("UWP", "")
+            trade_codes = system.get("trade_codes", [])
+            
+            # Skip empty or invalid systems
+            if not name or not hex_code:
+                continue
+                
+            # Skip systems that are completely numeric or empty
+            if not name or name.strip() == "" or name.strip().isdigit():
+                continue
+                
+            # Apply search filter if provided
+            if search_text and search_text.lower() not in name.lower():
+                continue
+                
+            # Filter out unnamed systems if checkbox is checked
+            if hasattr(self, 'hide_unnamed_checkbox') and self.hide_unnamed_checkbox.isChecked():
+                if not name or name.startswith("Unnamed") or name.startswith("X"):
+                    continue
+            
+            filtered_systems.append(system)
+        
+        # Sort systems by hex code (sector position)
+        filtered_systems.sort(key=lambda s: s.get("hex", ""))
+        
+        # Add filtered and sorted systems to the list
+        for system in filtered_systems:
             name = system.get("name", "Unknown System")
-            hex_code = system.get("hex_code", "")
-            item_text = f"{name} ({hex_code})" if hex_code else name
+            hex_code = system.get("hex", "")  # Changed from "hex_code" to match DB schema
+            uwp = system.get("UWP", "").strip()
+            trade_codes = ", ".join(system.get("trade_codes", []))
+            
+            # Create a more informative display text
+            item_text = f"{hex_code} - {name}"
+            if uwp:
+                item_text += f" [{uwp}]"
+            if trade_codes:
+                item_text += f" ({trade_codes})"
             
             item = QListWidgetItem(item_text)
             item.setData(Qt.ItemDataRole.UserRole, system)
@@ -520,29 +559,162 @@ class SectorView(QWidget):
             item: The QListWidgetItem that was selected, or None if system_data is provided
             system_data: Optional direct system data dictionary
         """
+        logger.info("=== SYSTEM SELECTION STARTED ===")
+        logger.debug(f"_on_system_selected called with item={item}, system_data={system_data is not None}")
+        
+        # Log the full system data if available
+        if system_data:
+            logger.debug(f"System data received: {system_data}")
+        elif item:
+            item_data = item.data(Qt.ItemDataRole.UserRole) if item else None
+            logger.debug(f"Item data: {item_data}")
+            if item_data:
+                logger.debug(f"Item data details - Name: {item_data.get('name', 'N/A')}, ID: {item_data.get('id', 'N/A')}")
+        
+        # Get system data from either direct input or item
+        system = None
         if system_data:
             # Direct system data provided
             system = system_data
+            logger.info(f"Using direct system data: {system.get('name', 'Unknown')} (ID: {system.get('id', 'N/A')})")
         elif item:
             # Item selected from list
             system = item.data(Qt.ItemDataRole.UserRole)
-        else:
-            # No valid selection
+            if system:
+                logger.info(f"Selected system from list: {system.get('name', 'Unknown')} (ID: {system.get('id', 'N/A')})")
+            else:
+                logger.warning("No system data found in selected item")
+        
+        # Validate we have a system to work with
+        if not system:
+            logger.warning("No valid system data available for selection")
             return
             
-        if system:
+        # Log system details
+        system_name = system.get('name', 'Unknown')
+        system_hex = system.get('hex', 'N/A')
+        system_id = system.get('id', 'N/A')
+        logger.info(f"Processing system selection - Name: {system_name}, Hex: {system_hex}, ID: {system_id}")
+        logger.debug(f"Full system data: {system}")
+            
+        # Emit the system_selected signal to notify other components
+        logger.info(f"Emitting system_selected signal for system: {system_name}")
+        try:
             self.system_selected.emit(system)
+            logger.debug("system_selected signal emitted successfully")
+        except Exception as e:
+            logger.error(f"Failed to emit system_selected signal: {str(e)}", exc_info=True)
+            
+        try:
+            # Log the current state of map_tabs and sector_map_widget
+            map_tabs_exists = hasattr(self, 'map_tabs')
+            sector_map_widget_exists = map_tabs_exists and hasattr(self.map_tabs, 'sector_map_widget')
+            sector_map_widget = getattr(self.map_tabs, 'sector_map_widget', None) if map_tabs_exists else None
+            
+            logger.debug(f"map_tabs exists: {map_tabs_exists}")
+            logger.debug(f"sector_map_widget exists: {sector_map_widget_exists}")
+            logger.debug(f"sector_map_widget type: {type(sector_map_widget) if sector_map_widget else 'None'}")
+            
+            # Update the map to center on the selected system if available
+            if sector_map_widget_exists and sector_map_widget:
+                logger.debug("Setting selected system on sector map widget")
+                try:
+                    sector_map_widget.selected_system = system
+                    logger.debug("Successfully set selected_system on sector_map_widget")
+                    
+                    # Ensure the system has a hex code before trying to center
+                    if 'hex' in system and system['hex']:
+                        logger.debug(f"Centering on system at hex {system['hex']}")
+                        if hasattr(sector_map_widget, 'center_on_system'):
+                            sector_map_widget.center_on_system(system)
+                            sector_map_widget.update()
+                            logger.debug("Successfully centered on system")
+                        else:
+                            logger.warning("sector_map_widget has no center_on_system method")
+                    else:
+                        logger.warning(f"System {system_name} is missing hex code")
+                    
+                    # Also update the info tab if available
+                    if hasattr(self.map_tabs, 'update_system_info'):
+                        logger.debug("Updating system info via map_tabs.update_system_info")
+                        self.map_tabs.update_system_info(system)
+                    else:
+                        logger.warning("map_tabs has no update_system_info method")
+                except Exception as e:
+                    logger.error(f"Error updating sector map widget: {str(e)}", exc_info=True)
+            else:
+                logger.warning("map_tabs or sector_map_widget not available or invalid")
+            
+            # Update the system info tab directly if available
+            if hasattr(self, 'system_info_tab'):
+                logger.debug("Updating system info tab directly")
+                self._update_system_info_tab(system)
+            else:
+                logger.debug("system_info_tab not available")
+                
+        except Exception as e:
+            logger.error(f"Unexpected error in system selection handler: {str(e)}", exc_info=True)
+            
+        # Log completion of system selection
+        logger.info(f"=== SYSTEM SELECTION COMPLETED FOR {system_name} ===")
     
     def _on_map_system_selected(self, system):
-        """Handle system selection from the map."""
-        self.system_selected.emit(system)
+        """Handle system selection from the map.
+        
+        Args:
+            system: Dictionary containing system data
+        """
+        logger.debug(f"_on_map_system_selected called with system: {system.get('name', 'Unknown') if system else 'None'}")
+        
+        if not system:
+            logger.debug("No system provided to _on_map_system_selected")
+            return
+            
+        system_name = system.get('name', 'Unknown')
+        system_hex = system.get('hex', 'N/A')
+        system_id = system.get('id', 'N/A')
+        
+        logger.info(f"Processing map system selection - Name: {system_name}, Hex: {system_hex}, ID: {system_id}")
+            
+        # Update the map to center on the selected system
+        if hasattr(self, 'map_tabs') and hasattr(self.map_tabs, 'sector_map_widget'):
+            logger.debug("Setting selected system on sector map widget from map selection")
+            self.map_tabs.sector_map_widget.selected_system = system
+            
+            # Ensure the system has a hex code before trying to center
+            if 'hex' in system and system['hex']:
+                logger.debug(f"Centering on system at hex {system['hex']}")
+                self.map_tabs.sector_map_widget.center_on_system(system)
+                self.map_tabs.sector_map_widget.update()
+            else:
+                logger.warning(f"System {system_name} is missing hex code")
+            
+            # Also update the info tab
+            logger.debug("Updating system info tab from map selection")
+            self.map_tabs.update_system_info(system)
+        else:
+            logger.warning("map_tabs or sector_map_widget not available in _on_map_system_selected")
         
         # Also select in the list
+        logger.debug(f"Searching for system ID {system_id} in systems list")
+        system_found = False
         for i in range(self.systems_list.count()):
             item = self.systems_list.item(i)
-            if item and item.data(Qt.ItemDataRole.UserRole).get("id") == system.get("id"):
-                self.systems_list.setCurrentItem(item)
-                break
+            if item:
+                item_data = item.data(Qt.ItemDataRole.UserRole)
+                if item_data and item_data.get("id") == system_id:
+                    logger.debug(f"Found matching system in list at index {i}")
+                    self.systems_list.setCurrentItem(item)
+                    system_found = True
+                    break
+                    
+        if not system_found:
+            logger.warning(f"System {system_name} (ID: {system_id}) not found in systems list")
+                
+        # Emit the signal
+        logger.debug(f"Emitting system_selected signal for system from map: {system_name}")
+        self.system_selected.emit(system)
+        logger.debug("system_selected signal emitted from map selection")
     
     def _on_sector_selected(self, item):
         """Handle sector selection from the list."""
@@ -818,6 +990,84 @@ class SectorView(QWidget):
                 self.map_tabs.set_sector(self.current_sector, milieu_code)
                 self._load_systems_for_sector(self.current_sector)
                 
+    def _update_system_info_tab(self, system):
+        """Update the system info tab with the selected system's data.
+        
+        Args:
+            system: Dictionary containing system data
+        """
+        try:
+            if not system:
+                logger.warning("No system data provided to update system info tab")
+                return
+                
+            logger.debug(f"Updating system info tab for system: {system.get('name', 'Unknown')}")
+            
+            # Get or create the system info tab
+            if not hasattr(self, 'system_info_tab'):
+                self.system_info_tab = QWidget()
+                layout = QVBoxLayout(self.system_info_tab)
+                
+                # Create a scroll area for the system info
+                scroll = QScrollArea()
+                scroll.setWidgetResizable(True)
+                
+                # Create a widget to contain the system info
+                self.system_info_widget = QWidget()
+                self.system_info_layout = QVBoxLayout(self.system_info_widget)
+                
+                # Add the system info widget to the scroll area
+                scroll.setWidget(self.system_info_widget)
+                
+                # Add the scroll area to the tab's layout
+                layout.addWidget(scroll)
+                
+                # Add the tab if it doesn't exist
+                if hasattr(self, 'info_tabs') and isinstance(self.info_tabs, QTabWidget):
+                    self.info_tabs.addTab(self.system_info_tab, "System Info")
+            
+            # Clear previous content
+            while self.system_info_layout.count():
+                item = self.system_info_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+            
+            # Add system information
+            system_name = system.get('name', 'Unknown System')
+            name_label = QLabel(f"<h2>{system_name}</h2>")
+            self.system_info_layout.addWidget(name_label)
+            
+            # Basic system info
+            info_text = f"<b>Hex:</b> {system.get('hex', 'N/A')}<br>"
+            info_text += f"<b>UWP:</b> {system.get('UWP', 'N/A')}<br>"
+            info_text += f"<b>Trade Codes:</b> {', '.join(system.get('trade_codes', [])) or 'None'}<br>"
+            info_text += f"<b>Travel Zone:</b> {system.get('zone', 'None')}<br>"
+            info_text += f"<b>PBG:</b> {system.get('pbg', 'N/A')}<br>"
+            info_text += f"<b>Allegiance:</b> {system.get('allegiance', 'N/A')}<br>"
+            info_text += f"<b>Stars:</b> {system.get('stars', 'N/A')}<br>"
+            
+            # Add planets if available
+            if 'planets' in system and system['planets']:
+                info_text += "<br><b>Planets:</b><br>"
+                for planet in system['planets']:
+                    info_text += f"- {planet.get('name', 'Unnamed Planet')}: "
+                    info_text += f"{planet.get('uwp', 'N/A')} {planet.get('trade_codes', [])}<br>"
+            
+            info_label = QLabel(info_text)
+            info_label.setWordWrap(True)
+            info_label.setTextFormat(Qt.TextFormat.RichText)
+            self.system_info_layout.addWidget(info_label)
+            
+            # Add stretch to push content to the top
+            self.system_info_layout.addStretch()
+            
+            # Switch to the system info tab
+            if hasattr(self, 'info_tabs') and isinstance(self.info_tabs, QTabWidget):
+                self.info_tabs.setCurrentWidget(self.system_info_tab)
+                
+        except Exception as e:
+            logger.error(f"Error updating system info tab: {str(e)}", exc_info=True)
+            
     def _reload_sectors_for_milieu(self, milieu):
         """Reload sectors list for the selected milieu."""
         try:

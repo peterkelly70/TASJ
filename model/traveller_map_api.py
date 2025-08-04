@@ -1,7 +1,15 @@
 import os
 import json
+import logging
 import requests
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
+
+from PyQt6.QtGui import QPixmap
+
+logger = logging.getLogger(__name__)
+
+# Constants for error messages
+ERROR_LOADING_IMAGE = "Failed to load image data"
 
 class TravellerMapAPI:
     def __init__(self, base_url="https://travellermap.com", milieu="M1105"):
@@ -78,7 +86,7 @@ class TravellerMapAPI:
     def get_sector_t5(self, sector, milieu: Optional[str] = None):
         """
         Retrieves sector data in T5 format.
-        Endpoint: https://travellermap.com/data/sector
+        Endpoint: https://travellermart.com/data/sector
         
         Args:
             sector: Sector name or T5SS abbreviation.
@@ -97,6 +105,295 @@ class TravellerMapAPI:
         if response.status_code != 200:
             raise requests.HTTPError(f"Error fetching T5 sector data for '{sector}': HTTP {response.status_code}")
         return response.text
+        
+    def get_sectors(self, milieu: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieves the list of all sectors with their metadata.
+        
+        Args:
+            milieu: Optional milieu code. If None, uses the instance default.
+            
+        Returns:
+            List of sector dictionaries with keys like 'Name', 'X', 'Y', 'Milieu', etc.
+        """
+        url = f"{self.base_url}/api/universe"
+        params = {}
+        
+        if milieu or self.milieu:
+            params["milieu"] = milieu or self.milieu
+            
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            raise requests.HTTPError(f"Error fetching sector list: HTTP {response.status_code}")
+            
+        return response.json().get('Sectors', [])
+        
+    def get_sector_map(self, sector: str, milieu: Optional[str] = None, 
+                      style: str = "poster", size: str = "1024") -> Tuple[QPixmap, str]:
+        """
+        Retrieves a sector map image.
+        
+        Args:
+            sector: Sector name or T5SS abbreviation.
+            milieu: Optional milieu code.
+            style: Map style (e.g., 'poster', 'print').
+            size: Image size (e.g., '512', '1024').
+            
+        Returns:
+            Tuple of (QPixmap, error_message). If successful, error_message is empty.
+        """
+        try:
+            url = f"{self.base_url}/api/poster"
+            params = {
+                "sector": sector,
+                "style": style,
+                "size": size,
+                "accept": "image/png"
+            }
+            
+            if milieu or self.milieu:
+                params["milieu"] = milieu or self.milieu
+                
+            response = requests.get(url, params=params)
+            if response.status_code != 200:
+                return None, f"Error {response.status_code}: {response.text}"
+                
+            # Create QPixmap from response content
+            pixmap = QPixmap()
+            if not pixmap.loadFromData(response.content):
+                return None, ERROR_LOADING_IMAGE
+                
+            return pixmap, ""
+            
+        except Exception as e:
+            return None, f"Error loading sector map: {str(e)}"
+    
+    def get_sector_data(self, sector: str, milieu: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Retrieves detailed sector data including metadata and system information.
+        
+        Args:
+            sector: Sector name or T5SS abbreviation.
+            milieu: Optional milieu code.
+            
+        Returns:
+            Dictionary containing sector data, including 'metadata' and 'systems' keys.
+            Each system in the 'systems' list includes planet data.
+        """
+        try:
+            # Get metadata
+            url = f"{self.base_url}/api/metadata"
+            params = {"sector": sector}
+            
+            if milieu or self.milieu:
+                params["milieu"] = milieu or self.milieu
+                
+            response = requests.get(url, params=params)
+            if response.status_code != 200:
+                raise requests.HTTPError(f"Error fetching sector metadata: HTTP {response.status_code}")
+                
+            data = response.json()
+            
+            # Get system data
+            t5_data = self.get_sector_t5(sector, milieu)
+            if not t5_data or not t5_data.strip():
+                logger.warning(f"No T5 data returned for sector {sector}")
+                data['systems'] = []
+                return data
+                
+            # Parse the T5 data to extract systems and planets
+            systems = self._parse_t5_systems(t5_data)
+            
+            # Log the number of systems found
+            logger.info(f"Found {len(systems)} systems in sector {sector}")
+            
+            # Add systems to the data
+            data['systems'] = systems
+            
+            # Fetch additional planet data for each system if available
+            for system in systems:
+                if 'hex' in system:
+                    try:
+                        # Try to get additional planet data if available
+                        hex_code = system['hex']
+                        logger.debug(f"Fetching planet data for system {system.get('name', 'Unknown')} at hex {hex_code}")
+                        
+                        # Ensure planets list exists
+                        if 'planets' not in system:
+                            system['planets'] = []
+                            
+                        # If we have UWP data for the main world, make sure it's in the planets list
+                        if 'UWP' in system and not any(p.get('is_main_world', False) for p in system['planets']):
+                            main_world = {
+                                'name': f"{system.get('name', 'Unknown')} I",
+                                'UWP': system['UWP'],
+                                'is_main_world': True
+                            }
+                            system['planets'].append(main_world)
+                            
+                    except Exception as planet_error:
+                        logger.warning(f"Error fetching planet data for system at hex {system.get('hex', 'Unknown')}: {planet_error}")
+            
+            return data
+            
+        except Exception as e:
+            logger.error(f"Error getting sector data: {e}")
+            raise
+    
+    def _parse_system_line(self, line: str) -> Dict[str, Any]:
+        """Parse a single system line from T5 data."""
+        parts = line.split()
+        return {
+            'hex': parts[0],
+            'name': parts[1],
+            'uwp': parts[2] if len(parts) > 2 else '',
+            'trade_codes': parts[3] if len(parts) > 3 else '',
+            'extensions': parts[4:] if len(parts) > 4 else []
+        }
+        
+    def _parse_t5_systems(self, t5_data: str) -> List[Dict[str, Any]]:
+        """
+        Parses T5 data into a list of system dictionaries.
+        
+        Args:
+            t5_data: Raw T5 format data.
+            
+        Returns:
+            List of system dictionaries with parsed data.
+        """
+        systems = []
+        current_system = None
+        
+        for line in t5_data.split('\n'):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+                
+            # Check if this is a system line (starts with hex code)
+            if self._is_system_line(line):
+                # Save the previous system if it's valid
+                if current_system:
+                    # Only include systems with valid data (name and UWP)
+                    if (current_system.get('name') and current_system.get('name') != '?' and 
+                        current_system.get('uwp') and '?' not in current_system.get('uwp', '???????')):
+                        systems.append(current_system)
+                
+                # Parse the new system line
+                current_system = self._parse_system_line(line)
+                
+                # Skip systems with no valid data
+                if (not current_system.get('name') or current_system.get('name') == '?' or 
+                    not current_system.get('uwp') or '?' in current_system.get('uwp', '???????')):
+                    current_system = None
+                    continue
+                    
+                # Initialize planets list
+                if 'planets' not in current_system:
+                    current_system['planets'] = []
+                    
+                # Add main world as first planet if UWP is available
+                if 'uwp' in current_system and current_system['uwp'] and '?' not in current_system['uwp']:
+                    main_world = {
+                        'name': f"{current_system.get('name', 'Unknown')} I",
+                        'UWP': current_system['uwp'],
+                        'is_main_world': True,
+                        'trade_codes': current_system.get('trade_codes', '')
+                    }
+                    current_system['planets'].append(main_world)
+                    
+            elif current_system and (line.startswith('  ') or line.startswith('\t')):  # Planet data
+                # Parse planet line
+                planet_data = self._parse_planet_line(line, current_system)
+                if planet_data:
+                    if 'planets' not in current_system:
+                        current_system['planets'] = []
+                    current_system['planets'].append(planet_data)
+            
+        # Add the last system if it's valid
+        if current_system:
+            if (current_system.get('name') and current_system.get('name') != '?' and 
+                current_system.get('uwp') and '?' not in current_system.get('uwp', '???????')):
+                systems.append(current_system)
+        
+        # Filter out systems with placeholder data
+        filtered_systems = []
+        for system in systems:
+            if (system.get('name') and system.get('name') != '?' and 
+                system.get('uwp') and '?' not in system.get('uwp', '???????')):
+                filtered_systems.append(system)
+        
+        return filtered_systems
+        
+    def _parse_planet_line(self, line: str, system: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Parse a planet line from T5 data.
+        
+        Args:
+            line: Raw planet line data.
+            system: The parent system dictionary.
+            
+        Returns:
+            Dictionary with parsed planet data.
+        """
+        try:
+            line = line.strip()
+            
+            # Try to extract planet name and details
+            parts = line.split(':', 1)
+            if len(parts) < 2:
+                # Can't parse this line properly
+                return None
+                
+            planet_name = parts[0].strip()
+            planet_details = parts[1].strip()
+            
+            # Create base planet object
+            planet = {
+                'name': planet_name,
+                'is_main_world': False,
+                'system_name': system.get('name', 'Unknown'),
+                'system_hex': system.get('hex', '????')
+            }
+            
+            # Try to extract UWP
+            import re
+            uwp_match = re.search(r'([A-Z0-9]+-[A-Z0-9]+(?:-[A-Z0-9]+)?)', planet_details)
+            if uwp_match:
+                planet['UWP'] = uwp_match.group(1)
+            else:
+                planet['UWP'] = '???????'
+            
+            # Try to extract trade codes
+            trade_match = re.search(r'\(([A-Za-z0-9\s,]+)\)', planet_details)
+            if trade_match:
+                planet['trade_codes'] = trade_match.group(1)
+            
+            # Try to extract bases
+            bases = []
+            if ' N ' in planet_details or planet_details.endswith(' N'):
+                bases.append('N')
+            if ' S ' in planet_details or planet_details.endswith(' S'):
+                bases.append('S')
+            if ' X ' in planet_details or planet_details.endswith(' X'):
+                bases.append('X')
+            if ' W ' in planet_details or planet_details.endswith(' W'):
+                bases.append('W')
+                
+            if bases:
+                planet['bases'] = ''.join(bases)
+                
+            return planet
+        except Exception as e:
+            logger.warning(f"Error parsing planet line: {line} - {e}")
+            return None
+            
+    def _is_system_line(self, line: str) -> bool:
+        """Check if a line represents a system (starts with hex code)."""
+        return (len(line) >= 4 and 
+                line[0] in '0123456789ABCDEF' and 
+                line[1] in '0123456789ABCDEF' and 
+                line[2] in '0123456789ABCDEF' and 
+                line[3] in '0123456789ABCDEF')
 
     def download_sector_image(self, sector, save_path=None, milieu: Optional[str] = None):
         """
