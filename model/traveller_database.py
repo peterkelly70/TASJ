@@ -1,7 +1,15 @@
 import os
 import sqlite3
-import mysql.connector
+import logging
 from dotenv import load_dotenv
+
+# Try to import mysql.connector, but don't fail if it's not available
+try:
+    import mysql.connector
+    MYSQL_AVAILABLE = True
+except ImportError:
+    MYSQL_AVAILABLE = False
+    logging.warning("mysql.connector module not found. MySQL functionality will be disabled.")
 
 class TravellerDatabase:
     _instance = None
@@ -21,29 +29,44 @@ class TravellerDatabase:
             load_dotenv("config/.env")
 
             if self.db_type == 'sqlite':
-                db_path = os.getenv('DATABASE_FILE_PATH')
-                if not db_path:
-                    raise ValueError("❌ DATABASE_FILE_PATH is not set in .env or is invalid!")
+                db_path = os.getenv('DATABASE_FILE_PATH', 'database/traveller_campaign.db')
+                if not os.path.isabs(db_path):
+                    db_path = os.path.abspath(db_path)
+
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
                 self.conn = sqlite3.connect(db_path)
+                self.database_path = db_path
                 print(f"✅ Connected to SQLite database at {db_path}")
 
             elif self.db_type == 'mysql':
-                db_host = os.getenv('DATABASE_HOST')
-                db_user = os.getenv('DATABASE_USERNAME')
-                db_password = os.getenv('DATABASE_PASSWORD')
-                db_name = os.getenv('DATABASE_NAME')
+                if not MYSQL_AVAILABLE:
+                    logging.warning("MySQL database type requested but mysql.connector module is not available.")
+                    logging.warning("Falling back to SQLite database.")
+                    self.db_type = 'sqlite'
+                    db_path = os.getenv('DATABASE_FILE_PATH', 'database/traveller_campaign.db')
+                    if not os.path.isabs(db_path):
+                        db_path = os.path.abspath(db_path)
+                    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                    self.conn = sqlite3.connect(db_path)
+                    self.database_path = db_path
+                    print(f"✅ Connected to SQLite database at {db_path} (fallback from MySQL)")
+                else:
+                    db_host = os.getenv('DATABASE_HOST')
+                    db_user = os.getenv('DATABASE_USERNAME')
+                    db_password = os.getenv('DATABASE_PASSWORD')
+                    db_name = os.getenv('DATABASE_NAME')
 
-                if not all([db_host, db_user, db_password, db_name]):
-                    raise ValueError("❌ MySQL database credentials are not fully set in .env!")
+                    if not all([db_host, db_user, db_password, db_name]):
+                        raise ValueError("❌ MySQL database credentials are not fully set in .env!")
 
-                self.conn = mysql.connector.connect(
-                    host=db_host,
-                    user=db_user,
-                    password=db_password,
-                    database=db_name
-                )
-                print(f"✅ Connected to MySQL database {db_name}")
+                    self.conn = mysql.connector.connect(
+                        host=db_host,
+                        user=db_user,
+                        password=db_password,
+                        database=db_name
+                    )
+                    print(f"✅ Connected to MySQL database {db_name}")
 
             else:
                 raise ValueError(f"❌ Unsupported database type: {self.db_type}")
@@ -56,6 +79,9 @@ class TravellerDatabase:
             if self.db_type == 'sqlite':
                 cursor.executescript(script)
             elif self.db_type == 'mysql':
+                if not MYSQL_AVAILABLE:
+                    logging.error("Cannot execute MySQL script: mysql.connector module not available")
+                    return -1
                 for result in cursor.execute(script, multi=True):
                     pass
             self.conn.commit()
@@ -100,6 +126,21 @@ class TravellerDatabase:
             return cursor.fetchall()
         except Exception as e:
             print(f"❌ Error reading records: {e}")
+            return []
+
+    def execute_query(self, query, params=None):
+        """Run a raw SELECT query and return all rows."""
+        try:
+            cursor = self.conn.cursor()
+            if params:
+                if self.db_type == 'mysql':
+                    query = query.replace('?', '%s')
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            return cursor.fetchall()
+        except Exception as e:
+            logging.error(f"❌ Error executing query: {e}")
             return []
 
     def update_record(self, table, data, conditions):

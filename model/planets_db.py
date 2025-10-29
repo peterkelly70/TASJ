@@ -1,3 +1,6 @@
+from typing import Dict, List, Optional
+
+
 class PlanetDB:
     def __init__(self, db_instance):
         """
@@ -88,3 +91,51 @@ class PlanetDB:
             return self.update_planet(data.get("name"), data.get("sector_id"), data)
         else:
             return self.create_planet(data)
+
+    # --- Query helpers for controllers ---
+
+    def list_planets_by_system(self, sector_id: int, system_hex: str) -> List[str]:
+        """Return planet names for a given sector/hex combination sorted alphabetically."""
+        rows = self.db.execute_query(
+            "SELECT name FROM planets WHERE sector_id = ? AND hex = ? ORDER BY name",
+            (sector_id, system_hex),
+        )
+        return [row[0] for row in rows]
+
+    def count_planets_for_sector(self, sector_id: int) -> int:
+        """Return the number of planets stored for the given sector id."""
+        rows = self.db.execute_query(
+            "SELECT COUNT(*) FROM planets WHERE sector_id = ?",
+            (sector_id,),
+        )
+        return rows[0][0] if rows else 0
+
+    def get_planet_by_id(self, planet_id: int) -> Optional[Dict[str, object]]:
+        if planet_id is None:
+            return None
+        records = self.db.read_records("planets", {"planet_id": planet_id})
+        if not records:
+            return None
+        columns = self.db.get_table_columns("planets")
+        row = records[0]
+        return {columns[idx]: row[idx] for idx in range(len(columns))}
+
+    def get_planet_details(self, name: str, sector_id: Optional[int] = None) -> Optional[Dict[str, object]]:
+        """Return a planet row as a dictionary."""
+        if not name:
+            return None
+
+        conditions = {"name": name}
+        if sector_id is not None:
+            conditions["sector_id"] = sector_id
+
+        records = self.db.read_records("planets", conditions)
+        if not records:
+            return None
+
+        columns = self.db.get_table_columns("planets")
+        if not columns:
+            return None
+
+        record = records[0]
+        return {column: record[idx] for idx, column in enumerate(columns)}

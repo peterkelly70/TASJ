@@ -1,0 +1,2807 @@
+﻿General Comments
+This is to document the way TravellerWorlds (old version: the T5 World Builder) builds world details.  I also document influences and discuss detailed world building for T5.
+
+
+At present, TravellerWorlds uses the MegaTraveller World Builder’s Handbook, Grand Survey, Grand Census, and Book 6 - Scouts in addition to the T5 Core Rules.  I have made various calls in converting these over to T5.  The present ‘world building’ basically crunches numbers into a bit of a sludge to make something that is useful to a Referee.  
+
+
+But the idea will be to present a new set of T5 rules for detailing worlds in a star system that includes using the new Extensions in combination with random tables to stimulate the world builder’s imagination.
+Bibliography and Inspiration
+Rule books
+Traveller5 Core Rule Books
+Traveller Book 6 - Scouts
+Grand Survey
+Grand Census
+MegaTraveller World Builder’s Handbook by Digest Group Publications 
+First In, Traveller GURPS by Joe Zeigler 
+World Building guides (science fiction or modern)
+Worldbuilding by Stephen L Gillett - Amazon
+The GM’s Planet Building Handbook by Mark Wrightman - DriveThruRPG
+Worldbuilding for writers, gamers and other creators - Volume 1: Star, Planet, Moon by Matthew Wayne Selznick (and there was never a Volume 2!) - DriveThruRPG
+Planet Building - A Referee’s Guide in JTAS Issues 10 & 11  by J. Andrew Keith and William Keith - DriveThruRPG JTAS Issue 10, DriveThruRPG JTAS Issue 11
+World Maps for Travellers in JTAS Issue 16 by Bobby Bryant - DriveThruRPG
+Notes on Collapsing Worlds in Challenge Issue 77 by Mark Gelinas and David Nilson DriveThruRPG
+Atmospheres by Robert O’Connor (appearing in Freelance Traveller) - link
+Gas Giants by Ken Pick (appearing in Freelance Traveller) - link
+Worlds that have been built 
+Tarsus by Marc Miller & Loren Wiseman (I think this boxed module set the pace for all world settings; showed off many aspects of Traveller including a hook to get the adventurers there).
+Victoria in JTAS Issue 2 by Marc Miller
+Azun in JTAS Issue 15 by J. Andrew Keith and Marc Miller
+Rech by Jonathan Sherlock - link
+
+
+Worldguide: Enaka by William H Keith Jr. - MegaTraveller Journal Issue #1 
+Worldguide: Vicennes by Charles P Kalina - MegaTraveller Journal Issue #3
+
+
+Other articles relevant to world building
+World Security Profiles, Jtas Volume 5, Ed. Matthew Sprange
+
+
+Links
+Artifexian channel - https://www.youtube.com/channel/UCeh-pJYRZTBJDXMNZeWSUVA 
+Worldbuilding is based on GURPS Space
+
+
+Artifexian on atmosphere building - includes spreadsheet!  https://www.youtube.com/watch?v=9-j_JOWPLj8 
+
+
+Artifixian on albedo - includes spreadsheet!  https://www.youtube.com/watch?v=y3Kb_ik5f-I 
+
+
+Artifexian on ocean currents - https://www.youtube.com/watch?v=n_E9UShtyY8 
+
+
+Stellar luminosity calculator - http://astro.unl.edu/classaction/animations/stellarprops/stellarlum.html 
+
+
+List of gravitationally rounded objects of the Solar System: https://en.wikipedia.org/wiki/List_of_gravitationally_rounded_objects_of_the_Solar_System
+
+
+
+Planet physical data calculator - http://www.transhuman.talktalk.net/iw/Geosync.htm 
+
+
+Atomic Rockets - http://www.projectrho.com/public_html/rocket/worldbuilding.php 
+
+
+Planetocopia - http://www.worlddreambank.org/P/PLANETS.HTM 
+
+
+Dawn of Worlds - http://www.clanwebsite.org/games/rpg/Dawn_of_Worlds_game_1_0Final.pdf a co-operative game for building fantasy worlds that could EASILY be adapted to Traveller, e.g. introduce intelligent species as OTU migrations - e.g. Vargr, Human, Aslan, etc.
+
+
+Matt Stevens series of articles on governments in Traveller:
+Part 1 - Charismatic Dictators 
+
+
+Part 2 - Bureaucracy 
+
+
+Part 3 - Democracy 
+
+
+Part 4 - Balkanized 
+
+
+Part 5 - Religious governments 
+
+
+Part 6 - Feudal Technocracy 
+
+
+Omni Calculator - calculate boiling points of various substances at various pressures:
+https://www.omnicalculator.com/chemistry/boiling-point 
+Preface
+World Building is fundamentally an act of imagination.
+
+
+Traveller has a clear procedure for generating Universal World Profiles and many essays, articles and books have been written about turning those numbers into an interesting setting. Many more have been written detailing actual worlds.
+
+
+The complex mathematics can make world building dull or inaccessible.
+
+
+I ask myself why I want to adapt past world building publications such as Grand Survey and Grand Census to Traveller5 especially when many Traveller products evoke great settings with little more than a couple of written paragraphs.
+
+
+At times I find myself researching physics questions about gas compositions and heat retention and chemical reactions and wonder if I am still having fun researching and coding the T5 World Builder.  The answer is always ‘yes’.
+
+
+So I offer these procedures with some hesitation: great world building is about producing a setting that is fun for all players at the table.  Why should it get bogged down in details about seasonal variations at all latitudes, chemistry and Newtonian mechanics?
+
+
+Honestly, I don't know.
+
+
+I just enjoy encoding the procedures I find in Traveller, assisted by the odd bits of chemistry and physics.  It has the potential to produce deep verisimilitude - and computers to crunch the numbers make the job easier.
+
+
+Which brings me back to the start: for all the numbers, procedures, attempts at physical accuracy and so on, a great idea for a setting of an adventure trumps a set of numbers every time.
+
+
+Addendum to Preface
+  
+
+https://imgs.xkcd.com/comics/earth_like_exoplanet.png 
+How World Map Data Works
+See this explanation: link
+Physical World Details
+Size related
+World Diameter
+Diameter in miles = World Size x 1000
+Add 100 x Flux, 10 x Flux and 1 x Flux miles to this diameter.
+Then convert to kilometres.  Or mathematically:
+
+
+
+Where d is the world diameter in kilometres, s is the world size digit, and ,  and are flux rolls.
+
+
+Where the world size is zero and content type is not Asteroid or Planetoid Belt, use
+300 miles + 25 x Flux + 2.5 x Flux
+Then convert to kilometres.  Or mathematically:
+
+Where d is the world diameter in kilometres, and ,  are flux rolls.
+This reflects objects that have been reduced to size 0 because of the way satellite size is calculated or other modifiers.
+Distance to Jump Point
+Calculate the jump point for the central star of this orbit set.
+If the planet is closer than that distance, the jump point is the star’s jump point minus the orbital distance from the star.
+If not, then the jump point is 100 times the diameter of the object.
+For satellites, if they are closer than the jump point for their planet, the jump point is the planet’s jump point minus the orbital distance from the planet.
+Orbital Period
+
+Planets: d is the orbital distance in AU, m is the mass of the central star in Solar Masses and p is the orbital period in years.
+Satellites: d is the orbital distance in km divided by 400,000, m is the mass of the satellite and planet combined in Earth / Moon combined masses, and p is the orbital period in months.
+Volume
+ 
+s is the world size from the UWP and v is the volume in Earth volumes.
+Density Type
+From Grand Survey, roll 2D on the following table:
+
+
+Result
+	Density Type
+	1-
+	Heavy Core (e.g. Mercury)
+	2-10
+	Molten Core (e.g. Earth)
+	11-14
+	Rocky Body (e.g. The Moon)
+	15+
+	Icy Body (e.g. Pluto)
+	DM +1 if Size 4-,
+DM -2 if Size 6+
+
+
+DM +1 if Atmosphere 3-
+DM -2 if Atmosphere 6+
+
+
+If World Type is Ice World, Density Type is automatically Icy Body.
+Density
+Roll 3D on the following table, taking density from the relevant Density Type. Density is in Earth densities.
+
+
+Roll
+	Heavy Core
+	Molten Core
+	Rocky Body
+	Icy Body
+	3
+	1.1
+	0.82
+	0.5
+	0.18
+	4
+	1.15
+	0.84
+	0.52
+	0.2
+	5
+	1.2
+	0.86
+	0.54
+	0.22
+	6
+	1.25
+	0.88
+	0.56
+	0.24
+	7
+	1.3
+	0.90
+	0.58
+	0.26
+	8
+	1.35
+	0.92
+	0.6
+	0.28
+	9
+	1.4
+	0.94
+	0.62
+	0.30
+	10
+	1.45
+	0.96
+	0.64
+	0.32
+	11
+	1.5
+	0.98
+	0.66
+	0.34
+	12
+	1.55
+	1.00
+	0.68
+	0.36
+	13
+	1.6
+	1.02
+	0.70
+	0.38
+	14
+	1.7
+	1.04
+	0.72
+	0.40
+	15
+	1.8
+	1.06
+	0.74
+	0.42
+	16
+	1.9
+	1.08
+	0.76
+	0.44
+	17
+	2.0
+	1.10
+	0.78
+	0.46
+	18
+	2.25
+	1.12
+	0.8
+	0.48
+	
+
+Mass
+ 
+M is the mass of the world is Earth masses, v is the volume of the world in Earth volumes, and d is the density of the world in Earth densities.
+Gravity
+ 
+Where g is the surface gravity (Earth = 1), m is the mass of the planet in Earth masses, and s is the UWP size digit.
+
+
+If the UWP size digit is zero and the world type is not a Belt, then a notional size digit is worked out by dividing the diameter in kilometers by Earth’s diameter and multiplying by 8 and inserting this fractional amount into this formula.
+Number of World Hexes
+If Size is 1, the number of world hexes is 12 and all of them are actually pentagons.
+
+
+Otherwise, we use the following formula:
+
+Where Tr is a function that returns the ‘triangle number’ for a given integer - i.e. Tr(3) = 3 + 2 + 1 = 6; Tr(8) = 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 = 36 etc.
+s is world Size, and n is the total number of world hexes for that sized world.  Note that 12 of the hexagons will be pentagons.
+Atmosphere Related
+Albedo
+Albedo is the percentage of incoming radiation that is reflected back into space.
+
+
+The method for calculating Albedo is taken from Book 6 - Scouts.  Albedo is calculated by considering cloudiness, land cover, ice cap cover and water coverage.
+Cloudiness
+First we calculate the percentage of cloud cover based on the Hydrographics Digit:
+
+
+Hydrographics on UWP
+	Cloudiness percentage
+	0
+	0
+	1
+	0
+	2
+	0.1
+	3
+	0.1
+	4
+	0.2
+	5
+	0.3
+	6
+	0.4
+	7
+	0.5
+	8
+	0.6
+	9
+	0.7
+	10
+	0.7
+	If the Atmosphere is greater than 9 (but not 14), then we add 0.4 to this figure (to a maximum of 1.0)
+
+
+If the Atmosphere is less than 4, cloudiness is reduced to 0.2 if it is more than 0.2
+
+
+If Atmosphere is 14, cloudiness is halved.
+Cloud Albedo
+Cloud albedo is determined randomly: 0.3 + 1D x 0.1 (maximum 0.8)
+Ice Cap Cover
+The Ice Cap is assumed to cover a number of hex rows equal to Hydrographics divided by 2.  Hydrographics digit of 0 or 1 results in zero ice cap cover.  The script calculates the number of world hexes covered in ice cap as follows:
+
+
+Hydrographics Digit
+	Hexes covered in Ice Cap
+	0
+	0
+	1
+	0
+	2
+	1
+	3
+	1
+	4
+	6
+	5
+	6
+	6
+	16
+	7
+	16
+	8
+	31
+	9
+	31
+	10
+	51
+	
+
+ and divides by the number of world hexes the world has.  This is the coverage (from 0 to 1) of ice cap on the world.
+Water Cover
+Water coverage is:
+
+Where i is the ice cap coverage and h is the hydrographic percentage
+Land Cover
+Land coverage is:
+
+Where i is ice cap coverage, and w is water coverage.
+Land Albedo
+Land varies in albedo from 0.1 (green forest or field) through to 0.2 (desert).  The script runs an approximation formula as follows:
+
+Thus, the greater the water coverage, the less desert there will be and the land will be less bright; on the other hand, on a desert world, the land albedo will be 0.2 for lack of any water coverage.
+Total Albedo
+Total is calculated from the cloudiness cover, the cloud albedo, land coverage and land albedo, water coverage and water albedo and ice cap coverage and ice albedo as follows:
+
+Where c is cloudiness from 0 to 1; is Cloud Albedo as determined; l is land coverage as determined; is land albedo as determined, i is ice cap coverage and w is water coverage.
+
+
+This yields a value between 0 and 1 and for Earth it gives a figure of 0.3, which is the generally accepted albedo for Earth.
+Greenhouse Effect
+The Greenhouse effect is the effect of re-radiated heat by the atmosphere - i.e. heat that is retained by the atmosphere, increasing effective temperature.
+
+
+It depends on UWP Atmosphere as follows.
+
+
+Atmosphere
+	Greenhouse Multiplier
+	0
+	1
+	1
+	1
+	2
+	1
+	3
+	1
+	4
+	1.05
+	5
+	1.05
+	6
+	1.1
+	7
+	1.1
+	8
+	1.15
+	9
+	1.15
+	10
+	Roll on Exotic Atmosphere Greenhouse
+	11
+	Roll on Corrosive / Insidious Greenhouse
+	12
+	Roll on Corrosive / Insidious Greenhouse
+	13
+	1.15
+	14
+	1.1
+	15
+	1
+	Exotic Atmosphere Greenhouse
+
+
+2D
+	Greenhouse multiplier
+	2
+	1.2
+	3
+	1.2
+	4
+	1.3
+	5
+	1.3
+	6
+	1.4
+	7
+	1.4
+	8
+	1.5
+	9
+	1.5
+	10
+	1.6
+	11
+	1.6
+	12
+	1.7
+	
+
+Corrosive and Insidious Greenhouse
+2D
+	Greenhouse multiplier
+	2
+	1.2
+	3
+	1.3
+	4
+	1.4
+	5
+	1.5
+	6
+	1.6
+	7
+	1.7
+	8
+	1.8
+	9
+	1.9
+	10
+	2
+	11
+	2.1
+	12
+	2.2
+	World Base Temperature
+World Base (or “Average”) Temperature depends on distance from the star, albedo of the world, greenhouse multiplier, and the luminosity of the central star as follows.
+
+
+
+Where t is the base world temperature in Kelvin (subtract 273 to get Celsius), g is the greenhouse multiplier as calculated, a is the albedo as calculated, l is the luminosity of the central star in terms of the luminosity of the Sun and d is the distance in AU.
+Axial Tilt
+Roll 2D on the following table:
+Roll
+	Tilt
+	2-3
+	2D-2
+	4-5
+	10+2D-2
+	6-7
+	20+2D-2
+	8-9
+	30+2D-2
+	10-11
+	40+2D-2
+	12
+	Roll 1D
+1-2
+	50+2D-2
+	3
+	60+2D-2
+	4
+	70+2D-2
+	5
+	80+2D-2
+	6
+	90
+	
+
+	Summer Temperature Increase
+= Axial Tilt x 0.6
+The base temperature for summer (modified by night and day) is the base world temperature plus this increase (Celsius)
+Winter Temperature Decrease
+= Axial Tilt 
+The base temperature for winter (modified by night and day) is the base world temperature minus this decrease (Celsius)
+Rotational Period
+If planet has “Tz” or satellite has “Lk”, then rotational period equals orbital period.
+
+
+Otherwise, rotational period = (2D-2) x 4 + 5
+
+
+If satellite, add the planet mass divided by the orbital distance divided by 400000.
+
+
+If planet, add the central star mass divided by the orbital distance in AU.
+
+
+If after this, the rotational period is over 40 hours, roll on the following table;
+
+
+Roll
+	Rotational Period (hours)
+	2
+	1D x 240 (retrograde)
+	3
+	1D x 480
+	4
+	1D x 240
+	5-9
+	Use original roll unchanged
+	10
+	1D x 240
+	11
+	1D x 1200
+	12
+	1D x 1200 (retrograde)
+	
+
+Finally, if the rotational period is more than the orbital period, it is reduced to the orbital period and the object is tidally locked to its parent star or planet.
+Rotation Temperature Effects
+
+
+	Daytime
+	Night time
+	Atmosphere UWP digit
+	* per hour
+	Absolute limit
+	* Per hour
+	Absolute limit
+	0
+	1
+	0.1
+	20
+	0.8
+	1
+	0.9
+	0.3
+	15
+	0.7
+	2-3
+	0.8
+	0.8
+	8
+	0.5
+	4-5
+	0.6
+	1.5
+	3
+	0.3
+	6-7
+	0.5
+	2.5
+	1
+	0.15
+	8-9
+	0.4
+	4
+	0.5
+	0.1
+	Very Dense
+	0.2
+	5
+	0.2
+	0.05
+	
+
+The rotation figure is halved and the daytime temperature is this halving times the “+ per hour” figure for that atmosphere type, and conversely with the night time temperature.
+
+
+Mathematically:
+ 
+Where  is the daily maximum temperature,  is the base world temperature, i is the per hour increase from the table, and r is the rotational period in hours.
+  
+Where  is the nightly minimum temperature,  is the base world temperature, d is the per hour decrease from the table, and r is the rotational period in hours.
+
+
+The Absolute Limit is a multiplier of the base temperature for the world in Kelvin - T5 World Builder interprets this as absolute limits on the highest surface temperature possible and the lowest surface temperature possible after calculating for rotation and season for each row (see the Temperature Table entry).  
+
+
+The “Very Dense” atmosphere result is imposed by Atmospheric Composition (q.v.).  
+Atmosphere Composition
+Composition is first based on the UWP Atmosphere digit, and further detail is determined for any taint present, or the gas mix if atmospheres type 10, 11 or 12.
+
+
+UWP Atmosphere Digit
+	Composition
+	0
+	None
+	1
+	Trace gases
+	2
+	Standard Oxygen / Nitrogen Mix
+	3
+	Standard Oxygen / Nitrogen Mix with a taint caused by ...
+	4
+	Standard Oxygen / Nitrogen Mix with a taint caused by ...
+	5
+	Standard Oxygen / Nitrogen Mix
+	6
+	Standard Oxygen / Nitrogen Mix
+	7
+	Standard Oxygen / Nitrogen Mix with a taint caused by ...
+	8
+	Standard Oxygen / Nitrogen Mix
+	9
+	Standard Oxygen / Nitrogen Mix with a taint caused by ...
+	10
+	See Exotic Atmosphere Composition Table
+	11
+	See Corrosive Atmosphere Composition Table
+	12
+	See Insidious Atmosphere Composition Table
+	13
+	Standard Oxygen / Nitrogen Mix
+	14
+	Standard Oxygen / Nitrogen Mix
+	15
+	Standard Oxygen / Nitrogen Mix
+	Taint Table
+2D Roll
+	Taint
+	2
+	Disease
+	3
+	Gas Mix
+	4
+	High Oxygen
+	5
+	Pollutants
+	6
+	Sulfur Compounds
+	7
+	Pollutants
+	8
+	Sulfur Compounds
+	9
+	Pollutants
+	10
+	Low Oxygen
+	11
+	Gas Mix
+	12
+	Disease
+	
+
+Exotic Atmosphere Table
+2D
+	Atmosphere Notes
+	2
+	Very Thin pressure, Irritant
+	3
+	Very Thin pressure, non-irritant
+	4
+	Thin pressure, irritant
+	5
+	Thin pressure, non-irritant
+	6
+	Standard pressure, non-irritant
+	7
+	Standard pressure, irritant
+	8
+	Dense pressure, non-irritant
+	9
+	Dense pressure, irritant
+	10
+	Very Dense pressure, non-irritant
+	11
+	Very Dense pressure, irritant
+	12
+	Occasional Corrosive
+	
+
+Corrosive Atmosphere Table
+2D
+	Pressure and temperature
+	2
+	Very Thin, < -100⁰C
+	3
+	Very Thin, > -100⁰C and < -25⁰C
+	4
+	Very Thin, > -25⁰C and < 50⁰C
+	5
+	Very Thin, > 50⁰C and < 100⁰C
+	6
+	Standard, > -200⁰C and < -25⁰C
+	7
+	Standard, > -25⁰C and < 50⁰C
+	8
+	Standard, > 50⁰C and < 100⁰C
+	9
+	Very Dense, > -200⁰C and < -25⁰C
+	10
+	Very Dense, > -25⁰C and < 50⁰C
+	11
+	Very Dense, > 50⁰C and < 100⁰C
+	12
+	Very Dense, > 100⁰C
+	Note that all temperature results incompatible with calculated temperature for the world are re-rolled.
+Insidious Atmosphere Table
+2D
+	Reason 
+	2
+	Gas Mix
+	3
+	Gas Mix
+	4
+	Radiation
+	5
+	Temperature
+	6
+	Pressure
+	7
+	Gas Mix
+	8
+	Pressure
+	9
+	Temperature
+	10
+	Radiation
+	11
+	Gas Mix
+	12
+	Gas Mix
+	Although the reason for the atmosphere being Insidious could be temperature, pressure or radiation, an insidious gas mix is selected in any case from the gas mix library (q.v.).
+
+
+Precise atmospheric pressure is determined by rolling on the relevant atmospheric pressure column (q.v.).
+
+
+This information is used to determine a random gax mix based on the Gas Library (q.v.).  A random gas mix is chosen that meets the criteria for an Exotic Gas Mix.
+Gas Library
+Name
+	Associated Liquid
+	Inert?
+	Exotic?
+	Corrosive?
+	Insidious
+	Helium
+	Water
+	Yes
+	Yes
+	No
+	No
+	Hydrogen
+	Water
+	No
+	No
+	No
+	1000
+	Neon
+	Water
+	Yes
+	Yes
+	No
+	No
+	Krypton
+	Water
+	Yes
+	Yes
+	No
+	No
+	Nitrogen
+	Water
+	Yes
+	Yes
+	No
+	No
+	Carbon Monoxide
+	Liquid Alkanes
+	No
+	Yes
+	No
+	No
+	Fluorine
+	Hydrofluoric Acid
+	No
+	No
+	10
+	100
+	Argon
+	Water
+	Yes
+	Yes
+	No
+	No
+	Oxygen
+	Water
+	No
+	No
+	No
+	No
+	Methane
+	Liquid Alkanes
+	No
+	Yes
+	No
+	No
+	Xenon
+	Water
+	Yes
+	Yes
+	No
+	No
+	Nitric Oxide
+	Nitric Acid
+	No
+	No
+	100
+	1000
+	Ozone
+	Water
+	No
+	No
+	0.1
+	1
+	Nitrous Oxide
+	Nitric Acid
+	No
+	No
+	100
+	1000
+	Carbon Dioxide
+	Water
+	Yes
+	Yes
+	No
+	No
+	Hydrogen Sulfide
+	Sulfuric Acid
+	No
+	No
+	300
+	1000
+	Chlorine
+	Hydrochloric Acid
+	No
+	Yes
+	100
+	1000
+	Suflur Dioxide
+	Sulfuric Acid
+	No
+	No
+	0.075
+	1000
+	Sulfur Dichloride
+	Sulfur Dichloride
+	No
+	No
+	300
+	1000
+	Ammonia
+	Ammonia
+	No
+	Yes
+	40000
+	No
+	Tetrafluromethane
+	Hydrofluoric Acid
+	Yes
+	Yes
+	No
+	No
+	Nitrogen Dioxide
+	Nitric Acid
+	No
+	Yes
+	100
+	40000
+	Hydrogen Cyanide
+	Water
+	No
+	Yes
+	No
+	No
+	
+
+Gas Mixes
+The following are subject to expansion:
+1. Carbon Dioxide
+2. Carbon Dioxide, Sulfur Dioxide
+3. Methane, Ammonia, Hydrogen
+4. Chlorine, Nitrogen
+5. Fluorine, Carbon Dioxide
+6. Fluorine, Suflur Chloride, Sulfur Dioxide, Hydrogen Sulfide
+7. Hydrogen
+8. Carbon Dioxide, Nitrogen
+9. Methane, Ammonia
+10. Chlorine, Carbon Dioxide
+11. Fluorine, Nitrogen
+The Gas Mix is determined based firstly on atmosphere type (Exotic, Corrosive or Insidious).  To ensure the gas mix library is easily expandable, the gas mix list is analysed to determine which mixes fit the atmosphere type - e.g. any gas mix that includes Fluorine cannot be considered merely exotic, and so will not be selected for Exotic atmospheres.  Some gasses are considered corrosive in certain concentrations or insidious in higher concentrations. These are expressed in parts per million in the gas mix table.  This is used to determine a possible percentage for that atmosphere type.  The script then ‘fills’ the rest of the atmosphere with any remaining gas marked as ‘inert’ in the mix (e.g. Nitrogen).  In addition, if an Exotic atmosphere is irritant because of the roll on the Exotic Atmosphere table, then corrosive atmosphere mixes are allowed, but the amount of corrosive gas is limited to being less than the concentration considered corrosive.
+
+
+This is a very rough draft based on my extensive research (*cough*wikipedia*cough*).  No interaction is done in this gas mix with pressure - so, for example, a certain about of chlorine would be considered corrosive at certain pressures but the same concentration at higher pressures would be insidious.  This is difficult to program and an iterative release and then refining is the best way of doing this.
+
+
+Anyone with more knowledge of the chemistry is welcome to critique this list, and anyone is welcome to add to the gas and gas mixes list.
+Development Note on Atmospheric Composition
+At present the composition for Exotic, Corrosive and Insidious atmosphere is too complex for a world building publication.  I would propose to simplify it.
+
+
+Have the temperature and pressure of the atmosphere calculated separately; assume that the greenhouse effect as calculated includes a denser atmosphere or having more greenhouse gasses present.
+
+
+Then present a table of reasons including particular gas mixes that the world builder is free to choose or randomly select.  This could be as extensive as a d66 list and include particular damage effects over particular periods of time (e.g. Suffocate-1 every Combat Round or Radiation-3 every hour etc.).  The table can be engineered to classify particular scenarios as fitting particular temperatures and pressures.  It needs to be practical for a Referee who just wants to choose a good-sounding reason on-the-fly (MOARN!).
+Atmospheric Pressure
+2D
+	Trace
+	Very Thin
+	Thin
+	Standard
+	Dense
+	Very Dense
+	2
+	0.01
+	0.10
+	0.43
+	0.76
+	1.5
+	2.5
+	3
+	0.05
+	0.12
+	0.45
+	0.8
+	1.6
+	5
+	4
+	0.05
+	0.14
+	0.48
+	0.85
+	1.7
+	10
+	5
+	0.06
+	0.16
+	0.5
+	0.9
+	1.8
+	25
+	6
+	0.06
+	0.18
+	0.5
+	0.95
+	1.9
+	50
+	7
+	0.07
+	0.20
+	0.5
+	1
+	2
+	100
+	8
+	0.07
+	0.23
+	0.55
+	1
+	2
+	150
+	9
+	0.07
+	0.25
+	0.6
+	1.1
+	2.2
+	200
+	10
+	0.08
+	0.3
+	0.65
+	1.2
+	2.2
+	250
+	11
+	0.08
+	0.35
+	0.7
+	1.3
+	2.4
+	500
+	12
+	0.09
+	0.4
+	0.75
+	1,4
+	2.4
+	750
+	Based on the Atmosphere UWP digit, or the results of Atmospheric Composition Tables for Atmospheres 10, 11 and 12, the relevant column and a 2D roll is used to determine pressure in Earth Atmospheric Pressure at Sea Level.
+
+
+Atmosphere 13 uses the Very Dense column; Atmosphere 14 uses Very Thin; and Atmosphere 15 uses a randomly determined pressure column.
+World Rows
+For the purpose of calculating latitude temperature adjustments and seasons we use rows of World Hexes.  This varies by world size.
+Worlds with an odd size (1, 3, 5, 7 … etc) have the equator running in between two centre rows.  Rows are numbered starting at zero at the row closest to the equator and numbered up to the pole.  For example, for a size 3 world:
+  
+
+
+
+For worlds with an even size, the equator runs through the middle hex row, and is numbered row zero, and each hex row is numbered sequentially from the equator.  For example, for a size 4 world:
+
+
+  
+
+
+
+To determine the effects of latitude by hex row and seasonal effects by row based on axial tilt, each world size needs its own table based on this convention.
+Latitude Temperature Adjustments by Row
+Temperature is adjusted from base temperature for that hex (latitude) row north and south from the equator using the row numbering conventions for World Rows (q.v.).
+Size:
+
+
+Row:
+	1
+	2
+	3
+	4
+	5
+	6
+	7
+	8
+	9
+	10
+	11
+	12
+	13
+	14
+	15
+	16
+	17
+	18
+	19
+	0
+	21
+	7
+	9
+	13
+	14
+	17
+	18
+	21
+	21
+	27
+	25
+	27
+	30
+	32
+	35
+	37
+	40
+	42
+	36
+	1
+	0
+	0
+	0
+	4
+	7
+	14
+	12
+	18
+	15
+	24
+	20
+	25
+	25
+	30
+	30
+	35
+	35
+	40
+	32
+	2
+	
+
+	-14
+	-9
+	0
+	0
+	7
+	6
+	12
+	10
+	18
+	15
+	20
+	20
+	25
+	25
+	30
+	30
+	35
+	28
+	3
+	
+
+	-28
+	-18
+	-9
+	-7
+	0
+	0
+	6
+	5
+	12
+	10
+	15
+	15
+	20
+	20
+	25
+	25
+	30
+	24
+	4
+	
+
+	
+
+	-27
+	-18
+	-14
+	-7
+	-6
+	0
+	0
+	6
+	5
+	10
+	10
+	15
+	15
+	20
+	20
+	25
+	20
+	5
+	
+
+	
+
+	
+
+	-27
+	-21
+	-14
+	-12
+	-6
+	5
+	0
+	0
+	5
+	5
+	10
+	10
+	15
+	15
+	20
+	16
+	6
+	
+
+	
+
+	
+
+	-36
+	-28
+	-21
+	-18
+	-12
+	-10
+	-6
+	-5
+	0
+	0
+	5
+	5
+	10
+	10
+	15
+	12
+	7
+	
+
+	
+
+	
+
+	
+
+	-35
+	-28
+	-24
+	-18
+	-15
+	-12
+	-10
+	-5
+	-5
+	0
+	0
+	5
+	5
+	10
+	8
+	8
+	
+
+	
+
+	
+
+	
+
+	
+
+	-35
+	-30
+	-24
+	-20
+	-18
+	-15
+	-10
+	-10
+	-5
+	-5
+	0
+	0
+	5
+	4
+	9
+	
+
+	
+
+	
+
+	
+
+	
+
+	-42
+	-36
+	-30
+	-25
+	-24
+	-20
+	-15
+	-15
+	-10
+	-10
+	-5
+	-5
+	0
+	0
+	10
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-42
+	-36
+	-30
+	-30
+	-25
+	-20
+	-20
+	-15
+	-15
+	-10
+	-10
+	-5
+	-4
+	11
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-42
+	-35
+	-36
+	-30
+	-25
+	-25
+	-20
+	-20
+	-15
+	-15
+	-10
+	-8
+	12
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-48
+	-40
+	-42
+	-35
+	-30
+	-30
+	-25
+	-25
+	-20
+	-20
+	-15
+	-12
+	13
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-45
+	-48
+	-40
+	-35
+	-35
+	-30
+	-30
+	-25
+	-25
+	-20
+	-16
+	14
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-54
+	-45
+	-40
+	-40
+	-35
+	-35
+	-30
+	-30
+	-25
+	-20
+	15
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-60
+	-50
+	-45
+	-45
+	-40
+	-40
+	-35
+	-35
+	-30
+	-24
+	16
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-55
+	-50
+	-50
+	-45
+	-45
+	-40
+	-40
+	-35
+	-28
+	17
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-55
+	-55
+	-50
+	-50
+	-45
+	-45
+	-40
+	-32
+	18
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-60
+	-60
+	-55
+	-55
+	-50
+	-50
+	-45
+	-36
+	19
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-65
+	-60
+	-60
+	-55
+	-55
+	-50
+	-40
+	20
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-65
+	-65
+	-60
+	-60
+	-55
+	-44
+	21
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-70
+	-70
+	-65
+	-65
+	-60
+	-48
+	22
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-75
+	-70
+	-70
+	-65
+	-52
+	23
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-75
+	-75
+	-70
+	-56
+	24
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-80
+	-80
+	-75
+	-60
+	25
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-85
+	-80
+	-64
+	26
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-85
+	-68
+	27
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-72
+	28
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	-76
+	
+
+NB: this is a very clunky table at present, derived from Grand Survey by proportionally spreading the increase and decrease in temperature across the relevant number of rows - note that Size 7 worlds in T5 are equivalent to the world map in Grand Survey.
+
+
+A simpler relationship would be to find the row that the 45⁰ north and south parallels run through and assign a modifier of zero for that row.  The derive a value for each row taking for the latitude of that row and using it as a multiplier compared to 
+Seasonal Effect By Row
+The increase for summer and decrease for winter are not applied evenly.
+The script determines a ‘tropic row’ for each world.  This is determined as follows:
+
+Where is the tropic row (north and south); a is the axial tilt as determined, and r is the number of rows in a hemisphere for that world (number of rows is calculated using World Size: where s is world Size).
+Where the world size is odd, this is rounded down; where the world size is even, it is rounded to the nearest integer.
+
+
+The seasonal effect for each hex row is assigned as follows:
+
+
+Row
+	Seasonal Effect
+	Less than Tropic Row minus 1
+	0%
+	Equal to Tropic Row minus 1
+	25%
+	At the Tropic Row
+	50%
+	Equal to Tropic Row plus 1
+	75%
+	Greater than the Tropic Row plus 1
+	100%
+	
+
+Seasons could be changed by noting that at the height of summer, the ‘equator’ latitude modifier gets moved to the tropic row and all other modifiers get moved alongside it, but then we would have to account for the changing day length at each latitude which is a significant factor in temperature change on a daily basis.
+Temperature Table - putting it together
+The Temperature has ten columns: 
+1. the row number
+2. the average temperature
+3. average with day time increase
+4. average with night time decrease
+5. Summer temperature
+6. Summer temperature with day time increase
+7. Summer temperature with night time decrease
+8. Winter temperature
+9. Winter temperature with day time increase
+10. Winter temperature with night time decrease
+
+
+The table puts together all the previous calculations, with the ‘absolute day time’ and ‘absolute night time’ values from the rotation calculations earlier and based on the atmosphere as absolute hottest and coldest values for any entry.
+Hydrosphere Related
+Hydrographic Percentage
+Precise hydrographic percentage is the Hydrographic UWP digit times 10 plus a flux roll.
+Liquid Composition
+Liquid composition is based on the atmosphere; generally it is water but in exotic, corrosive or insidious atmospheres a randomly chosen liquid based on liquids associated with various atmospheric gasses is chosen.  See the Gas Mix table for the liquids associated with each gas.
+Stress Factor
+The Stress Factor provides a general chance of seismic activity in a 24-hour period.  In Grand Survey this is a 4D roll for 32+, adding the stress factor.  This is equivalent to 4D being less than the stress factor minus 4.
+Planets
+Start with a roll of 1D-3.
+If the world is Molten Core, add a roll of 1D-3.
+If the world is Heavy Core, add a roll of 1D-2.
+For each satellite, add the satellite diameter in km divided by the orbit distance in world radii and divided again by 64.
+Add the stellar mass (in Sol masses) divided by the orbital distance in AU.
+Satellites
+As for planets, except do not add the ‘satellite’ modifier.  Instead, add the planet diameter in km divided by the orbit distance in planet radii and divided again by 64.
+NB: this is an experimental measure not in Grand Survey but designed to give satellites a stress factor based on the planet they were orbiting.  This generally results in close satellites of gas giants having extreme stress factors.
+
+
+Native Life
+The basic roll is 2D for 10+ for there to be native life.  If the roll is failed, this does not mean there is no life at all; the life could all be exotic to that world.
+
+
+DMs: Atmosphere 0: -3; Atmosphere 4-9: +4; Hydrographics 0: -2; Hydrographics 2-8: +1; Average temperature less than -20ºC or more than 30ºC: -1; Central star spectral class G or K: +1; Spectral class F, A, or B: -1.
+
+
+NB: This has been taken from Grand Survey directly; however, it is possibly contradicted by the Native Intelligent Life from T5; the NIL could indicate native life while this indicator comes out false.  The T5 indicator over-rides the Grand Survey rule; if there is Native Intelligent Life, there is native life.  This could be modified by changing the T5 rules slightly: there could be two new NIL categories: “Established transplants” and “Exotic established transplants” - these cases would arise only if all the conditions for Natives or Exotic Natives were met but the Native Life indicator was ‘No’.  Within the OTU there are thousands of worlds settled by Major Races where there are established populations in the hundreds of millions or higher - Humanitii, Vargr, Aslan, K’Kree, Hiver to name a few of the larger ones.
+
+
+
+
+GURPS FIRST IN:  Roll 3D: 
+13 or less - no life
+14-16 - Protozoa (single-celled life only)
+17 - Metazoa (multi-celled life: sponges, jellyfish, lichens, molds, kelp)
+18 - simple animals (fish, arthropods, amphibians, insects supported by photosynthesising plant life or equivalent)
+19+ - complex animals (the lot)
+
+
+… THEN if complex life, roll 3D and on 15-, all animals non-sentient; on 16-17, near-sentient animals exist (equiv. To chimpanzee, hominid or cetacean).  On 18, native sentient life.
+
+
+Proposed new way of doing it:  it would simplify generation vastly to get rid of temperature range and star DMs.  Also to “Traveller5” the style of roll.  Let’s just base it on Atmosphere and Hydrographics:
+
+
+First pass (OK, atmosphere and hydrographics DMs ARE in there)::
+To check if there is native life on a world:
+Average (2D) < 2
+Note: If Atmosphere 0, Mod -3; if Atmosphere 4-9, Mod +4; if Hydrographics 0, Mod -2, if Hydrographics 2-9, Mod +1.
+Note: If Atmosphere A+, native life will be exotic
+Note: Complexity of life is decided by the Referee based on the needs of the adventure or campaign
+
+
+Giving a ‘Mod’ of -2 (incorporated into target number) automatically based on worst case with star and temperature; this makes life suitably rare.
+Implemented April 2019
+Native Intelligent Life
+Table from Traveller5 Core Rulebook used to determine Native Intelligent Life.  Three new entries are added as ‘house rules’ (implemented April 2019):
+1. Where all characteristics except size are zero, this ‘falls through’ the NIL table; now implementing a ‘no sign of intelligent life’ category for these worlds.
+2. Established Transplants - same requirements as for Natives but Native Life is ‘false’ per the previous entry.
+3. Established Exotic Transplants - same requirements as for Exotic Natives by Native Life is ‘false’ per the previous entry.
+Resources
+T5 World Builder uses the Grand Survey rules to determine the presence of raw, processed and manufactured resources present on the world.  For each resource, total up the numbers where the Density, Atmosphere, Population, Technology and Native Life indicator apply, and roll 2D; if the result is equal to or lower than that target number, the world has that resource.
+
+
+I have not yet used the new T5 Economic Extension, which could vastly simplify this process, making it a prod to the imagination rather than a procedure.  Also, Don McKinney’s MT Trade and Commerce Variant contained a good, simple set of tables for availability of resources for purchase; this could be easily adapted to presence of resources for world building.  One simple alternative would be to roll 2D < Resources indicator for that Natural Resource to be present; and then a table showing availability of processed and manufactured resources based on trade classifications, population and tech level. Other resources also need to be added: industrial chemicals and fluids (e.g. ammonia on fluid worlds); information; software.
+
+
+
+
+
+
+	Density
+	Atmosphere
+	Population
+	Technology
+	Native Life
+	Resource
+	Molten Core
+	Rocky Body
+	Icy Body
+	Atm 4-9
+	Atm 0-3,A+
+	Pop 0-4
+	Pop 5+
+	Tech 0-3
+	Tech 4-6
+	Tech 7-11
+	Tech 12+
+	Life
+	No Life
+	Agricultural
+	+5
+	+5
+	0
+	+1
+	-3
+	0
+	0
+	+1
+	0
+	-1
+	-2
+	+5
+	0
+	Ores
+	+7
+	+3
+	0
+	0
+	+1
+	0
+	0
+	+1
+	0
+	-1
+	-2
+	0
+	0
+	Radioactives
+	+5
+	+3
+	0
+	0
+	+1
+	0
+	0
+	+1
+	0
+	-1
+	-2
+	0
+	0
+	Gems & Crystals
+	+5
+	+2
+	0
+	0
+	0
+	0
+	0
+	+1
+	0
+	-1
+	-2
+	0
+	0
+	Petrochemicals
+	+4
+	+1
+	-4
+	0
+	-3
+	0
+	0
+	+1
+	0
+	-2
+	-2
+	+5
+	-5
+	Processed Agricultural
+	+5
+	+5
+	0
+	+5
+	-5
+	+1
+	+2
+	-1
+	0
+	+1
+	+1
+	+5
+	0
+	Alloys
+	+4
+	+4
+	-1
+	0
+	-5
+	-1
+	+1
+	-2
+	-1
+	0
+	+1
+	0
+	0
+	Agroproducts
+	+4
+	+4
+	-1
+	+3
+	-5
+	0
+	+1
+	-1
+	0
+	+1
+	+2
+	+5
+	0
+	Weapons
+	+4
+	+4
+	-1
+	0
+	0
+	-1
+	+1
+	0
+	+1
+	+3
+	+5
+	0
+	0
+	Mechanical Parts
+	+4
+	+4
+	-1
+	0
+	0
+	-1
+	+1
+	0
+	+1
+	+2
+	+3
+	0
+	0
+	Heavy Equipment
+	+4
+	+4
+	-1
+	0
+	0
+	-1
+	+2
+	0
+	+1
+	+2
+	+3
+	0
+	0
+	Electronics
+	+4
+	+4
+	-1
+	0
+	0
+	-1
+	+1
+	-10
+	-10
+	+2
+	+4
+	0
+	0
+	Gravitics
+	+4
+	+4
+	-1
+	0
+	0
+	-1
+	+1
+	-10
+	-10
+	+1
+	+2
+	0
+	0
+	Yellow=natural resources; Green=processed resources; White=manufactured resources
+
+
+Proposed table of available resources using the Economic Extension and TCs.  The requirements boil down to cross-referencing Labor, Infrastructure, Trade Classifications and possibly Technology Level.
+
+
+To determine availability in a particular week:
+Average (2D) < Resources AND Infrastructure AND Labor
+Note: Multiply quantity available by the Efficiency RU Multiplier
+
+
+Resource
+	Required TC
+	Required eX
+	Other Requirements
+	Comment
+	Agricultural
+	Ag or Ri and Ni
+	Infrastructure 1+
+Labor 4+
+	Not icy density type
+	
+
+	Ores
+	Ni
+	Infrastructure 1+
+Labor 4+
+	If the population is too high for Ni rating, world will be exploiting its own mineral resources for itself.  If world is Lo, then there is insufficient Labor to exploit the resource.
+	Radioactives
+	Ni
+	Infrastructure 6+
+Labor 5+
+	Gems & Crystals
+	Ni
+	Infrastructure 1+
+Labor 4+
+	Petrochemicals
+	Ni
+	Infrastructure 5+
+Labor 4+
+	Not Icy Body density and world has Native Life.
+	Processed Agricultural Products
+	Ag or Ri but not Ni
+	Infrastructure 5+ Labor 5+
+	Not icy density type
+	
+
+	Alloys
+	Not Ni and not Lo
+	Infrastructure 4+ Labor 6+
+	Not icy density type
+	
+
+	Agroproducts
+	Ag or Ri but not Ni
+	Infrastructure 7+ Labor 7+
+	Not icy density type
+	
+
+	Weapons
+	Not Ni and not Lo
+	Infrastructure 8+
+	
+
+	
+
+	Mechanical Parts
+	Not Ni and not Lo
+	Infrastructure 9+
+	
+
+	
+
+	Heavy Equipment
+	In
+	Infrastructure 9+
+	
+
+	
+
+	Electronics
+	In, TL7+
+	Infrastructure 8+
+	
+
+	
+
+	Gravitics
+	In, TL9+
+	Infrastructure 8+
+	
+
+	
+
+	Information
+	Not Lo
+	Infrastructure 3+
+	
+
+	
+
+	
+
+Population Related
+Distribution of Population - not to be implemented
+Grand Survey provides a procedure for determining the number and population level of cities.  T5 simply indicates one city per triangle if population is more than 7, and one location of a town if population is less than 7.  Neither of these options close off further cities, towns, villages or hamlets spread across the globe; but the exact nature is better dealt with by the Referee’s imagination - I do not think rolling for the number of major cities adds anything to world building.
+
+
+This procedure is not implemented in the T5 World Builder.  I am open to persuasion but I don’t think it adds anything to the process we don’t already have.
+Population in Orbit
+Not implemented yet.  This is more interesting and possibly worth noting for world flavour.
+Scenario 1: world barely habitable
+If Atmosphere is 10, 11 or 12 and there is no native life, and TL 9+, roll 3D < Population+3.  If successful, TL-6 of the population (that is, people) live permanently in orbit.
+Scenario 2: Class A or B Starports
+For Starport class A, there may be at least one orbital facility or city with (Population - 2) inhabitants permanently in orbit.  Roll 3D < Population for this to be the case.  This is in addition to a possible highport.
+
+
+For class B, it is at least one orbital facility or city with (Population - 3) inhabitants in addition to any highport.  Roll 3D < Population for this to be the case.
+Scenario 3: Class C Starports
+Class C Starports mean there are generally not substantial orbital facilities (except for Referee fiat) but a highport might still be present based on the T5 Core rules.
+
+
+Using Physical World Data
+There are two basic Referee problems:
+1. Preparing a world ahead of time as a setting for an adventure;
+2. Having details ready ‘on the fly’ as players take things in their own direction.
+
+
+Computer scripted world building helps with both problems.  But it is problem (b) that I have in mind mostly - which always helps with problem (a) anyway.
+
+
+Ideally, I would like a Referee to be able to:
+1. Generate a world map and details at the click of a button when players arrive
+2. Generate a more local map down to Terrain Hex easily based on player interaction
+3. Accompanying that Terrain Hex map is a relevant BeastMaker table, local weather conditions including temperature, chance & type of precipitation and weather events.
+4. For urban settings, BeastMaker should be replaced or supplemented by some kind of urban encounter table - based on perhaps Book 3?  MegaTraveller Referee’s Manual pp. 37-43?  Is there something in TNE or T4?
+Precipitation - not implemented yet
+This is a cut-and-paste from Grand Survey p.40:
+  
+
+For T5 purposes, we will assume ‘hex’ refers to the Terrain Hex - 100km scale is plenty.  What we want is a roll for whether it’s overcast and whether it’s precipitating.  We ignore ‘Cloudiness percentage’ completely and just calculate a factor based on hydrographics and atmosphere.
+The what of precipitation is the ‘associated liquid’ already determined as part of the hydrosphere composition.
+Seismic Activity
+Listed next to each Terrain Hex will be the phrase:
+
+
+For there to be an earthquake in any given 24-hour period:
+Formidable (4D) < Stress Factor - 4
+Mod +2 if the hex is on a fault line (determined by Referee)
+All characters must the following test if there is seismic activity:
+Average (2D) < Dexterity
+Failing this test results in Blow-2
+
+
+If the Stress Factor is less than 6 and the hex does not contain a volcano, the phrase will be omitted completely.  Otherwise the actual number will be present.
+
+
+If the phrase contains a volcano (only possible if parent World Hex is Exotic, p. 437 T5.09), the calculation will be Stress Factor - 2 to reflect the +2 Mod (equivalent to the DM in Grand Survey).
+
+
+The Referee determines whether the fault line applies - generally based on a quick look at the overall map - is there a chain of mountains or chasms that indicates a fault line?
+
+
+Cultural World Details
+Social Outlook - not implemented
+This appears to be have been superceded by the Cultural Extension in T5.  The Social Outlook tables in Grand Census cover very similar territory.
+
+
+Expanding on the Cultural Extension - not implemented yet
+There was an excellent discussion on CoTI: http://www.travellerrpg.com/CotI/Discuss/showthread.php?t=38452 
+
+
+Heterogeneity
+Joshua Bell suggested this for Homogeneity (it’s buried in your tables somewhere).  It reworks the ‘Global Extensiveness’ component of Social Outlook in Grand Census.  But - is homogeneity more homogenous with a higher rating or less homogenous?  Question has been settled by Marc - higher rating = less homogenous will be published that way in T5.10; now rebadged ‘Heterogeneity’.  The additions in red are mine:
+
+
+Homogeneity Rating
+	Expanded description
+	0
+	N/A
+	1
+	Very Monolithic
+	2
+	Monolithic
+	3
+	Quite Monolithic
+	4
+	Very Harmonious
+	5
+	Harmonious
+	6
+	Somewhat Harmonious
+	7
+	Somewhat Discordant
+	8
+	Quite Discordant
+	9
+	Discordant
+	10
+	Very Discordant
+	11
+	Extremely Discordant
+	12
+	Fragmented
+	13
+	Very Fragmented
+	14
+	Extremely Fragmented
+	15
+	Extremely Fragmented
+	
+
+Acceptance
+Similarly, this is Josh’s take on Acceptance (which reworks the Interstellar Extensiveness component in Grand Census)::
+
+
+Acceptance Rating
+	Expanded description
+	0
+	N/A
+	1
+	Extremely xenophobic
+	2
+	Very xenophobic
+	3
+	Xenophobic
+	4
+	Extremely aloof
+	5
+	Very Aloof
+	6
+	Aloof
+	7
+	Aloof
+	8
+	Friendly
+	9
+	Friendly
+	10
+	Very friendly
+	11
+	Extremely friendly
+	12
+	Xenophilic
+	13
+	Very Xenophilic
+	14
+	Extremely Xenophilic
+	15
+	Extremely Xenophilic
+	
+
+Strangeness
+This is Thomas Jones-Low on CoTI although I can’t find the link - it may have been part of the discussion already mentioned:
+
+
+This is a composite trait descriptor generated by the IISS for several groups within the Imperium for interfacing purposes. It is a combination of Disposition, Innovation, and Tractability. Strangeness is generated by a flux roll + 5, giving a range of 0 to 10 (A). Low strangeness indicates the culture is close to Imperial norms or understanding of them. High strangeness indicates the culture has very divergent norms, or lacks the disposition to be tolerant of the Imperial culture.
+
+
+It was originally devised by the Travellers Aid Society (TAS) as an aid to their members to have an understanding of the ease or difficulty their members would have in contacting the world. The original version was a simple score assigned by members during their interactions on the world. The Imperial Navy also devised a similar rating system for their strategic planning. The IISS diplomatic branch currently derives the rating for worlds and gives the information to TAS, Navy, local nobility, and other interested parties.
+
+
+Symbols
+Thomas Jones-Low, brilliantly again - original post is at http://www.travellerrpg.com/CotI/Discuss/showpost.php?p=577390&postcount=29 
+This would give a numerical indication of the Progressiveness Attitude and Action in one statistic but with a specific meaning able to be inferred from the technological level.  When calculating the number of novel customs, Symbols is used instead of TL because Symbols represents that society’s cultural TL.
+
+
+Symbols could also be used to interact with TL as to how the local culture uses technology.  The Symbols rating becomes the effective locally used technology, but it is modified for Tech Level Stages.
+
+
+For example, a TL 10 society has Symbols of 12.  Travellers to the world will see that the local technology includes many examples of TL12 Prototypes (Technology chapter, p. 495 T5.09 Core Rules).  This society has a lot of ‘early adopters’ of prototypes.  This reflects the local progressive attitude to technology.  On the other hand, a TL7 society might have Symbols of 3; what is in daily use tends to be TL3 Ultimate examples (“if it ain’t broke, don’t fix it” being the prevailing attitude, although older things are improved by design).
+
+
+When I was trying to understand the HASS, the Symbols threw me for a while too. And then I started to look at this this way.
+
+
+In order to maintain, or increase, Technology level (the basis of Symbols rating), you need to have the populace understand the technology they are working with every day.
+
+
+For example, A TL 7 technology uses ground cars. There is a whole set of symbols around operation of a ground car: road signs, markings on the road for which lane to use, instruments on the dashboard, lights on the other cars, and so on.
+
+
+If you go read stories of the early 19th century about when cars first started to show up, people had no idea what to do with them. They lack the symbology, or knowledge of, cars and all the parts how to interact with them.
+
+
+So to have a stable TL-7 society everyone needs to know about these things as part of their education, all of the part of the society they are operating in. Cars, communications, schools, government, commerce, social situations. These all have rules, signs, and expectations of how to interact with them.
+
+
+So the flux roll of 0 on the Symbols says most everyone gets the world as constructed. Everyone knows what a car is, how it operates, rules of the road, how to see what the other cars are doing, etc. Even if they don't operate the vehicles themselves.
+
+
+When the flux roll deviates from the median (0 point) it would mean the larger and larger parts of the population don't have an understanding of the standard conventions of technology level.
+
+
+For example, a Symbols of 2 on a TL7 world would imply that almost everyone has never seen a ground car, let alone know how to operate one. There would be few, if any roads, and those that do exist lack basic road markings, and diving on one would be experience as the few ground cars you would meet have different expectations of how the rules of the road operate.
+
+
+On a Symbols 12 / TL 7 world, every road is clearly marked with signs, lights, and lines. Every citizen is given refresher courses on driving.
+
+
+So symbols describes how well people interact with the expected technology of their own world. Strageness says how different are those rules from the expected Imperial (or external) standards.
+
+
+Car example: In Britain, you drive on the left side of the road, whereas in America you drive on the right. But most of the other rules are the same. So a little strange, but both have high symbols ratings.
+
+
+Because learning to drive a car requires learning the whole set of symbology around cars, it becomes easy to reverse this idea. Worlds where the Symbols are behind the technology level are failing to teach their citizens (for whatever cultural reasons) all of the things they need to operate in their own world. They are falling back technologically.
+
+
+Conversely, worlds where symbols are ahead of the technology level are more aggressively teaching their citizens about the parts of their world. They will be advancing technologically.
+
+
+Most of the Imperial citizens have a symbology rating of somewhere between 10 and 14. Or probably based upon the TL of their home world. Members of the Imperial armed forces (Navy and Scouts especially, but also Marines and Army) will have a symbology rating of 15 (imperial maximum).
+
+
+If your character has (for example) an understanding of TL 12, going to the Symbols 2 / TL 7 world will seem like utter chaos. Sure the technology is understandable (mostly), but no one seems to have the same knowledge.
+
+
+Conversely on a Symbols 12 / TL 7 world, they will fit right in. Sure the technology is a little backwards but everything is clear, easy to understand, works as expected.
+
+
+And on a Symbols 20 / TL 15 world, it would be mindboggling. Everything is marked in weird ways that make no sense. The order of operations to get anything done is obscure and rules are confused. Clearly there is order to everything, but you have no idea how to manage anything.
+
+
+
+
+Symbol
+	Description (currently based on historic periods on Earth; want to pare this back to a list of symbols).
+	List of Symbols
+	0 (Stone Age)
+	Totems and personalising of natural phenomena (e.g. spirits, gods); messengers can transmit information between groups; clear demarcation of land and recognition of a limited number specialised social roles (e.g. wise elder); pictorial representations of animals and plants.  Natural numbers.
+	Totems
+Spirits
+Gods
+Boundary stones
+Transmission of information between groups
+Pictorial representations
+Natural numbers
+Barter trade
+Singing, hand-made instruments
+	1 (Bronze Age, Iron Age, Middle Ages)
+	Creation stories and stories embodying important knowledge are memorised and passed on.  Writing (alphabet or logographic) begins as does transmission of knowledge through language.  Operations with natural numbers emerge and tools for them.  Fractional and irrational numbers are discovered; abstract geometry emerges.  History (as opposed to legend) emerges.  Group membership beyond family, clan and tribe emerges - flags, banners and other symbols of loyalty emerge.  Trade records drive numeracy.  Figurative language greatly expands with new experiences.  Beginning of mapping and abstract reasoning.
+	Creation stories
+Moral fables
+Writing
+Generational transmission of knowledge
+Arithmetic operations
+Fractional and irrational numbers
+History
+Legends
+Group membership beyond family - e.g. city-state
+Flags, banners
+Trade records
+Figurative language
+Mapping by dead reckoning
+Abstract reasoning
+Sun-dials and water-clocks
+Gold or other rare metals as currency
+Calendars
+Music specialists for the wealthy
+	2 (Age of Sail)
+	Sophisticated algebra including calculus is developed.  Writing and literature now influence language and public imagination.  Previous symbols challenged by new ideas.  Nations now build into empires, well beyond cities.  Complex measurements now possible - e.g. movement of planets and stars.  
+	Algebra
+Calculus
+Widespread literature
+Literary allusions
+Transformation / challenge of earlier symbols
+Nations and Empires
+Complex measurements become routine
+Early mechanical time pieces.
+Public music performances by professionals
+	3 (Industrial Revolution)
+	Dynamic economic ideas springing from money emerge to organise economy, primarily money.  Time and calendars dominate life.  Previous symbols now in decline.  Rights and liberties normalised in daily language.  Absorption of new symbols encountered starts to occur.  Mass production of books begins.
+	Paper / coin currency
+Banking, bonds, cheques, ledgers
+Calendars in daily life reconciled with sophisticated mechanical time pieces
+Rights and liberties - political movements
+Exchange and absorption of symbols
+Early popular literature
+Local musical collectives
+	4 Mechanisation
+	Widely agreed measurement systems for length, time and matter.  The stopwatch dominates life.  Mass transport, efficient postal and early telegraph and radio lead to vastly more widespread common knowledge of news, but also literature and shared allusions.  Common analogies to machines and clockwork.  Universal education of children begins.
+	Agreed measuring systems
+Time and scheduling in daily life
+Mass transport
+Mass media 
+Universal education begins
+World maps consolidated and accurate
+Beginnings of mass produced popular music
+	5 Electro-
+mechanical Age
+	Shipping and air travel lead to world maps becoming commonplace.  Shapes of coastlines and land maps now recognised by populace.  Electrical diagrams standardised and measurements of electricity enter daily language.  Information now transmitted via television and radio - the modern mass media is born.  Beginnings of scientific research into psychology for media manipulation, e.g. advertising.  Mass produced printed materials now routine.
+	Accurate World maps commonplace
+Circuit diagrams
+Electronic mass media
+Psychology and mass manipulation
+Music shared by electronic mass media
+	6 Atomic Age
+	Representations of electricity and atoms entrenched in public imagination.  Complex signage and symbols at ports (air and sea) is routine.  Education routinely includes samples of literature of previous eras.  Art and figurative language multiply with new materials and methods of expression.  Electronic media born allowing instant transmission of signs and symbols.  Culture is rapidly transformed.
+	Representations of atoms and chemistry
+Complex signage at public locations
+Routine sampling of literature for education of children
+Explosion of art and figurative language
+Electronic mass media has thoroughly transformed popular culture
+New music possibilities from new technologies thoroughly entrenched
+	7 Electronics Age
+	Abstraction and replication of symbols electronically begins.  Early computers but not yet routinely adopted in the home or at work.  Mathematics takes advantage of new computational power leading to new insights and the popular imagination.  Universal secondary education means a highly literate culture overall, well acquainted with current and previous symbols.
+	Mass media communication taken for granted.
+Early computers marketed for workplaces, limited home usage.
+New mathematics exploits new technologies
+Universal secondary education
+Established mass produced popular culture - drama, music, comedy etc.
+	8 Network Age
+	Access to immediate knowledge on the run - can ‘google it’ if you don’t know.  Icons to express emotions and computer related conventions become widely understood.  Those who miss out on secondary education are relatively disadvantaged.  Literature begins to more accurately speculate.  Agreed measurement systems and theories are deeply entrenched in the popular imagination (e.g. who doesn’t know the formula  even if they don’t understand what it is saying?).  Variety of instantly recognised symbols for governments and large corporations now embedded in the popular imagination thanks to networked computers.  New virtual forms of digital art emerge.
+	Commercial cultural icons
+Literature and science icons
+Shared platforms of information
+Transformation of mass media again, more user interactivity
+New forms of art (music, painting, drama, comedy etc.) take advantage of new technological platforms.
+Almost universal tertiary education (but this could take the form of an apprenticeship or trade education as much as an academic college degree).
+	9 Gravitics Age
+	Wearable technology means computers and devices fade into the background.  Cities begin to be reorganised in line with new flying traffic.  Immediate impact on visual perspectives.  
+	Architecture, roads and planning transformed.
+Perspectives change as more time spent flying or in space.
+	10 Dawn of Interstellar
+	Interstellar symbols become normalised; group affiliations routinely extend between star systems.  Cities and traffic routinely geared towards air / grav travel.  Starport has similar connotations to Port in the Age of Sail (roughly Symbols 2).  Investigation of cosmos enters the public imagination in a concrete way as questions are resolved one after the other.  
+	Representations of planets, stars and star systems
+Explosion of cosmological discovery
+	11 Practical Interstellar
+	12 Good Interstellar
+	13 Age of the Meson and the Mind
+	Emerging technologies in relation to the mind (personality imprints, recorded personalities) become less frightening.  People become used to dealing with virtual personalities.
+
+
+New Meson technologies and much larger starships create unheard of fears of mass destruction on a planetary scale.  But they also enable communications intra-system
+	Shared dreams and shared direct subconscious lead to symbols incomprehensible to previous societies.
+
+
+Interstellar travel fades into background of most citizen’s lives
+Art, sport and culture transformed by abundant energy and anti-grav technology.
+
+
+	14 Early self aware machines
+	15 Prototype AI
+	16 True AI
+	Mind boggling systems of symbols and language as AI begins to construct its own agenda and merge with the rest of society.
+
+
+Conceptions of the universe change as mysteries are unlocked.  This high technology appears magical to those not yet at these level of symbols, although possibly academically appreciated.  
+	Completely unknowable symbol sets.
+	17 Mind Transfer
+	18 Matter Teleport
+	19 World range teleport
+	20+ System Range Teleport
+	
+
+Government - not implemented yet
+The aim of this section is to provide a brief description to prompt the Referee.  It needs to be read with Marc Miller’s “Planetary Government In Traveller” article from 1982 (found here:  https://talestoastound.files.wordpress.com/2017/01/planetary-government-in-traveller.pdf)
+
+
+One way to describe the government might be to assemble the divisions of authority descriptions and then add to it the relevant entry from Marc’s article?
+
+
+The really game-table centred stuff comes from naming the councils - things that drop-in the background to spice up descriptions.  But that’s the one thing this random generator is bad at!
+
+
+I will not be implementing the Grand Census version of government, but rather using Matt Stevens ideas (links in Bibliography at the top).
+Division of Authority
+From Grand Census, we first roll for division of authority (the three divisions being executive, legislative and judicial):
+
+
+1D
+	Division of authority
+	1
+	3-way
+	2
+	3-way
+	3
+	2-way
+	4
+	2-way
+	5
+	No division
+	6
+	No division
+	
+
+If it is a two-way split, which way is it split? The “representative” authority is the part of the government that is classified by the Government code.
+1D
+	“Representative” authority
+	Other authority
+	1
+	Executive & Judicial
+	Legislative
+	2
+	Executive
+	Legislative & Judicial
+	3
+	Executive & Legislative
+	Judicial
+	4
+	Executive
+	Judicial & Legislative
+	5
+	Legislative
+	Executive & Judicial
+	6
+	Legislative & Judicial
+	Executive
+	
+
+In a three-way split, which authority is the ‘representative’ authority and which are the other authorities?
+1D
+	“Representative” authority
+	Other authority
+	1
+	Executive
+	Legislative, Judicial
+	2
+	Executive
+	Legislative, Judicial
+	3
+	Legislative
+	Judicial, Executive
+	4
+	Legislative
+	Judicial, Executive
+	5
+	Judicial
+	Executive. Legislative
+	6
+	Judicial
+	Executive, Legislative
+	
+
+Nature of Authorities
+Firstly we need to consult the following table of government codes.  “Roll on Table 2.5” means roll on the “Nature of Authority” 2D table below pasted from Grand Census.
+Government Organisation Guide
+  
+
+
+
+Nature of Authority table
+Roll on this table for the ‘other authorities’ in addition to any action or labelling done as a result of the Government Organisation Guide.
+2D
+	Organisation
+	2
+	Demos
+	3
+	Elite Council
+	4
+	Elite Council
+	5
+	Elite Council
+	6
+	Ruler
+	7
+	Ruler
+	8
+	Several Councils
+	9
+	Several Councils
+	10
+	Several Councils
+	11
+	Several Councils
+	12
+	Demos
+	Law - not implemented yet
+Law Level Profile
+Grand Census suggests rolling 2D-7+Government for each area of the law to create a legal profile for the world:
+* Weapons
+* Trade
+* Criminal
+* Civil
+* Freedom
+
+
+I will think about the value of this: I am not wholly convinced.  There are many articles expanding usefully on Law Level that are better prods to the imagination than an expanded profile.  But it could lead to interesting variations in government and law.  It could also be a headache for no reason in the many worlds with smaller (Population 4 or less) populations.
+
+
+To mirror Grand Census, the roll would be Flux + Government for each part of the law level profile.  But I propose the five rolls be Flux + Law Level so that the UWP law level figure remains an average or median of these five law levels.
+
+
+Culture - Customs
+We can quickly roll several customs from Grand Census for local flavour.  The Grand Census procedure is to roll 1D - an even result means generate one custom, and an odd result generate 2.  If TL < 7 then generate one more (i.e. 2 or 3).
+
+
+I propose we generate one custom if Strangeness is 0-5 or two customs if 6-10, and generate one more if Symbols is less than 7 (which is adopted as the intersection between technology and a society’s adoption of technology into its semiotics).

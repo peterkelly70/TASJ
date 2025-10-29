@@ -1,0 +1,47 @@
+[
+  {
+    "sector": "Kaas",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Kaas",
+    "timestamp": "2025-10-23T09:05:45.483060Z"
+  },
+  {
+    "sector": "Tash",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Tash",
+    "timestamp": "2025-10-23T09:05:46.317835Z"
+  },
+  {
+    "sector": "Loow",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Loow",
+    "timestamp": "2025-10-23T09:05:47.220033Z"
+  },
+  {
+    "sector": "Pars",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Pars",
+    "timestamp": "2025-10-23T09:05:48.029406Z"
+  },
+  {
+    "sector": "Dash",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Dash",
+    "timestamp": "2025-10-23T09:05:48.881367Z"
+  },
+  {
+    "sector": "Rish",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Rish",
+    "timestamp": "2025-10-23T09:05:49.694825Z"
+  },
+  {
+    "sector": "Kloo",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Kloo",
+    "timestamp": "2025-10-23T09:05:50.505807Z"
+  },
+  {
+    "sector": "Uthm",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Uthm",
+    "timestamp": "2025-10-23T09:05:51.361155Z"
+  },
+  {
+    "sector": "Snen",
+    "reason": "404 Client Error: Not Found for url: https://travellermap.com/data/sector/sec?sector=Snen",
+    "timestamp": "2025-10-23T09:05:52.175037Z"
+  }
+]

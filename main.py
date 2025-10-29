@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
+
 from PyQt6.QtWidgets import (
     QMainWindow, QApplication, QDialog, QVBoxLayout, QHBoxLayout,
-    QLabel, QComboBox, QPushButton, QProgressBar, QMenuBar, QTabWidget,
+    QLabel, QComboBox, QPushButton, QProgressBar, QMenuBar, QTabWidget, QStackedWidget,
     QTextEdit, QDialogButtonBox, QWidget, QFontDialog, QMessageBox, QMenu,
     QListWidget, QGroupBox, QFormLayout, QListWidgetItem, QSizePolicy
 )
@@ -12,7 +14,7 @@ import os
 import configparser
 from dotenv import load_dotenv
 import multiprocessing
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Set
 import logging
 from logging.handlers import RotatingFileHandler
 from dataclasses import dataclass
@@ -35,6 +37,11 @@ from controller.technology_controller import TechnologyController
 from controller.organizations_controller import OrganizationsController
 from controller.adventure_hooks_controller import AdventureHooksController
 from view.console_view import ConsoleView
+from view.download_options_dialog import DownloadOptionsDialog
+from model.sector_cache import load_sector_cache, save_sector_cache
+from model.sectors_db import SectorDB
+from model.planets_db import PlanetDB
+from model.traveller_map_api import TravellerMapAPI
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,6 +61,37 @@ DATABASE_PATH: str = os.getenv("DATABASE_FILE_PATH", "database/traveller_campaig
 
 # Theme styles
 THEME_STYLESHEETS: Dict[str, str] = {}
+
+DIALOG_STYLE_FRAGMENT = """
+QDialog {
+    background-color: palette(Window);
+    color: palette(WindowText);
+}
+QGroupBox {
+    border: 1px solid palette(Midlight);
+    border-radius: 6px;
+    margin-top: 18px;
+    padding-top: 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 8px;
+}
+QListWidget {
+    background-color: palette(Base);
+    color: palette(Text);
+    border: 1px solid palette(Mid);
+    border-radius: 4px;
+}
+QListWidget::item:selected {
+    background-color: palette(Highlight);
+    color: palette(HighlightedText);
+}
+QDialogButtonBox QPushButton {
+    min-width: 80px;
+}
+"""
 
 def _extract_css_from_theme(content: str) -> str:
     """Extract CSS content from theme file, skipping section headers."""
@@ -77,8 +115,12 @@ def _load_single_theme(theme_file: Path) -> tuple[str, str]:
     
     with open(theme_file, 'r') as f:
         css_content = f.read()
-    
+
     stylesheet = _extract_css_from_theme(css_content)
+    if stylesheet:
+        stylesheet = f"{stylesheet}\n{DIALOG_STYLE_FRAGMENT}"
+    else:
+        stylesheet = DIALOG_STYLE_FRAGMENT
     return theme_name, stylesheet
 
 def load_theme_stylesheets():
@@ -128,7 +170,7 @@ LIGHT_STYLESHEET: str = """
         border: 1px solid #ccc;
         border-radius: 4px;
     }
-"""
+""" + DIALOG_STYLE_FRAGMENT
 
 DARK_STYLESHEET: str = """
     QMainWindow, QDialog {
@@ -151,7 +193,7 @@ DARK_STYLESHEET: str = """
         background-color: #363636;
         color: white;
     }
-"""
+""" + DIALOG_STYLE_FRAGMENT
 
 @dataclass
 class UISettings:
@@ -376,31 +418,89 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     
     def __init__(self) -> None:
         """Initialize the main window."""
-        super().__init__()
-        
-        # Initialize console controller first to capture all logging
-        self.console_controller = ConsoleController(self)
-        
-        # Initialize application
-        self._initialize_app()
-        
-        # Set up UI
-        self._setup_ui()
-        
-        # Initialize controllers
-        self._initialize_controllers()
-        
-        # Apply theme and font
-        self.apply_theme_and_font()
-        
-        # Show window
-        self.show()
-        
-        # Log initialization
-        logging.info("Application initialized successfully")
-        
-        # Initialize data download controller with console view
-        self.data_download_controller.set_console_view(self.console_controller.console_view)
+        try:
+            print("Starting __init__ of HitchhikersGuideToTheGalaxy")
+            super().__init__()
+            print("Super __init__ completed")
+            
+            # Initialize console controller first to capture all logging
+            try:
+                print("Initializing console controller...")
+                self.console_controller = ConsoleController(self)
+                print("Console controller initialized")
+            except Exception as e:
+                print(f"Error initializing console controller: {str(e)}")
+                raise
+            
+            # Initialize application
+            try:
+                print("Initializing application...")
+                self._initialize_app()
+                print("Application initialized")
+            except Exception as e:
+                print(f"Error in _initialize_app: {str(e)}")
+                raise
+            
+            # Set up UI
+            try:
+                print("Setting up UI...")
+                self._setup_ui()
+                print("UI setup complete")
+            except Exception as e:
+                print(f"Error in _setup_ui: {str(e)}")
+                raise
+            
+            # Initialize controllers
+            try:
+                print("Initializing controllers...")
+                self._initialize_controllers()
+                print("Controllers initialized")
+            except Exception as e:
+                print(f"Error in _initialize_controllers: {str(e)}")
+                raise
+            
+            # Apply theme and font
+            try:
+                print("Applying theme and font...")
+                self.apply_theme_and_font()
+                print("Theme and font applied")
+            except Exception as e:
+                print(f"Error in apply_theme_and_font: {str(e)}")
+                raise
+            
+            # Show window
+            print("About to show window...")
+            self.show()
+            print("Window show() called")
+            
+            # Log initialization
+            logging.info("Application initialized successfully")
+            
+            # Initialize data download controller with console view
+            try:
+                print("Setting up data download controller...")
+                self.data_download_controller.set_console_view(self.console_controller.console_view)
+                print("Data download controller setup complete")
+            except Exception as e:
+                print(f"Error setting up data download controller: {str(e)}")
+                # Non-critical, don't raise
+            
+            # Test console logging to verify it works
+            try:
+                print("Testing console logging...")
+                self.console_controller.console_view.append_text("Console logging test - if you can see this, console is working!\n")
+                self.console_controller.console_view.append_text("Use File > Load API Data to start downloading sector and planet data.\n")
+                print("Console logging test complete")
+            except Exception as e:
+                print(f"Error testing console logging: {str(e)}")
+                # Non-critical, don't raise
+                
+            print("__init__ of HitchhikersGuideToTheGalaxy completed successfully")
+        except Exception as e:
+            print(f"CRITICAL ERROR in __init__: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def _initialize_app(self) -> None:
         """Initialize the application."""
@@ -460,15 +560,28 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         self.move(frame.topLeft())
 
     def closeEvent(self, event):
-        """Handle window close event - save settings."""
+        """Handle window close event - save settings and cleanup resources."""
+        # Cancel any ongoing downloads
+        if hasattr(self, 'data_download_cancel_event'):
+            self.data_download_cancel_event.set()
+        
+        # Stop progress monitoring timer
+        if hasattr(self, 'progress_timer'):
+            self.progress_timer.stop()
+        
+        # Give background processes time to cleanup
+        import time
+        time.sleep(0.1)
+        
         # Save window geometry
         self.qsettings.setValue("geometry", self.saveGeometry())
         event.accept()
 
     def _initialize_controllers(self) -> None:
         """Initialize application controllers."""
-        # Initialize console controller first
-        self.console_controller = ConsoleController(self)
+        # Console controller is initialized during __init__ so logging is captured early
+        if not hasattr(self, "console_controller"):
+            self.console_controller = ConsoleController(self)
         
         # Initialize controllers
         self.sectors_controller = SectorController(self.db_instance)
@@ -554,7 +667,7 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         button_flow_layout = FlowLayout(self.button_container)
         
         # Create buttons
-        self.sector_button = QPushButton("Sectors")
+        self.sector_button = QPushButton("Galaxy")
         self.planet_button = QPushButton("Planets")
         self.people_button = QPushButton("Characters")
         self.lifeforms_button = QPushButton("Lifeforms")
@@ -584,18 +697,35 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         # Add button container to top layout
         top_layout.addWidget(self.button_container)
         
-        # Create main view box
-        self.main_view = QTextEdit()
-        self.main_view.setReadOnly(True)
-        self.main_view.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        # Create main view container using stacked widget
+        self.main_container = QStackedWidget()
+        
+        # Create text view for regular content
+        self.main_text_view = QTextEdit()
+        self.main_text_view.setReadOnly(True)
+        self.main_text_view.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         
         # Set main view properties
         font = QFont()
         font.setPointSize(10)  # Smaller font size
-        self.main_view.setFont(font)
+        self.main_text_view.setFont(font)
         
-        # Add main view to bottom layout
-        bottom_layout.addWidget(self.main_view)
+        # Create widget view for console and other widgets
+        self.main_widget_view = QWidget()
+        self.main_widget_layout = QVBoxLayout(self.main_widget_view)
+        
+        # Add both views to the stacked widget
+        self.main_container.addWidget(self.main_text_view)
+        self.main_container.addWidget(self.main_widget_view)
+        
+        # Set the text view as default
+        self.main_container.setCurrentIndex(0)
+        
+        # For backward compatibility
+        self.main_view = self.main_text_view
+        
+        # Add main container to bottom layout
+        bottom_layout.addWidget(self.main_container)
         
         # Add top and bottom layouts to main layout
         main_layout.addLayout(top_layout)
@@ -620,34 +750,54 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     def _create_button_handler(self, button_text: str):
         """Create handler for button clicks."""
         def handler():
-            # Clear main view
-            self.main_view.clear()
-            
-            # Show appropriate view based on button
-            if button_text == "Sectors":
-                self.sectors_controller.show_view(self.main_view)
-            elif button_text == "Planets":
-                self.planets_controller.show_view(self.main_view)
+            if button_text == "Console":
+                self._show_widget_view(self.console_view)
+                logging.info("Console view displayed in main view")
+                return
+
+            if button_text == "Galaxy":
+                sector_view = self.sectors_controller.show_view()
+                self._show_widget_view(sector_view)
+                return
+
+            if button_text == "Adventure Hooks":
+                hooks_view = self.adventure_hooks_controller.get_view()
+                self._show_widget_view(hooks_view)
+                return
+
+            # Default to text view for other buttons
+            self.main_container.setCurrentIndex(0)
+            self.main_text_view.clear()
+
+            if button_text == "Planets":
+                self.planets_controller.show_view(self.main_text_view)
             elif button_text == "Characters":
-                self.people_controller.show_view(self.main_view)
+                self.people_controller.show_view(self.main_text_view)
             elif button_text == "Lifeforms":
-                self.lifeforms_controller.show_view(self.main_view)
+                self.lifeforms_controller.show_view(self.main_text_view)
             elif button_text == "Ships":
-                self.ships_controller.show_view(self.main_view)
+                self.ships_controller.show_view(self.main_text_view)
             elif button_text == "Vehicle":
-                self.vehicle_controller.show_view(self.main_view)
+                self.vehicle_controller.show_view(self.main_text_view)
             elif button_text == "Events":
-                self.events_controller.show_view(self.main_view)
+                self.events_controller.show_view(self.main_text_view)
             elif button_text == "Technology":
-                self.technology_controller.show_view(self.main_view)
+                self.technology_controller.show_view(self.main_text_view)
             elif button_text == "Organizations":
-                self.organizations_controller.show_view(self.main_view)
-            elif button_text == "Adventure Hooks":
-                self.adventure_hooks_controller.show_view(self.main_view)
-            elif button_text == "Console":
-                # Show console view in the main view
-                self.main_view.setPlainText(self.console_view.text_area.toPlainText())
+                self.organizations_controller.show_view(self.main_text_view)
         return handler
+
+    def _show_widget_view(self, widget: QWidget) -> None:
+        """Display the provided widget inside the main widget container."""
+        while self.main_widget_layout.count():
+            item = self.main_widget_layout.takeAt(0)
+            existing = item.widget()
+            if existing:
+                existing.setParent(None)
+
+        self.main_widget_layout.addWidget(widget)
+        self.main_container.setCurrentIndex(1)
+        widget.show()
 
     def apply_theme_and_font(self) -> None:
         """Apply the current theme and font settings."""
@@ -665,11 +815,8 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
 
         # Get theme-specific font if no custom font set
         if not self.current_font:
-            theme_font_id = self.current_theme.lower()
-            # self.current_font = self.font_controller.ensure_font_available(theme_font_id, self)
-            # if not self.current_font:
-            #     # Fallback to system font if download failed or was declined
-            #     self.current_font = QFont("DejaVu Sans", 10)
+            # Use a default system font if no custom font is set
+            self.current_font = QFont("DejaVu Sans", 10)
         
         # Load and apply theme CSS globally to the application
         try:
@@ -724,12 +871,17 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         """Updates progress bar based on background task messages."""
         try:
             while not self.data_download_queue.empty():
-                progress, message = self.data_download_queue.get_nowait()
-                self.console_controller.console_view.append_text(message)
-                if self.console_controller.console_view.progress_bar:
-                    self.console_controller.console_view.progress_bar.setValue(progress)
+                payload = self.data_download_queue.get_nowait()
+                # Debug: Log what we're receiving
+                print(f"DEBUG: Received payload: {repr(payload)}")
+
+                if self.data_download_controller:
+                    self.data_download_controller.update_progress(payload)
+                else:
+                    print("DEBUG: Data download controller not available")
         except Exception as e:
             logging.error(f"Error updating progress: {e}")
+            print(f"DEBUG: Progress update error: {e}")
 
     def open_settings(self) -> None:
         """Opens the settings dialog and applies changes globally."""
@@ -787,14 +939,80 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
     def load_api_data(self) -> None:
         """Download and load API data."""
         logger.info("Starting API data download")
+        sector_db = SectorDB(self.db_instance)
+        planet_db = PlanetDB(self.db_instance)
+
+        cached_sectors = load_sector_cache()
+
+        sectors_with_data = set()
+        for sector_id, name, abbreviation in sector_db.list_sector_records():
+            if planet_db.count_planets_for_sector(sector_id) > 0:
+                if name:
+                    sectors_with_data.add(name)
+                if abbreviation:
+                    sectors_with_data.add(abbreviation)
+
+        failure_log_path = Path("logs/sector_failures.json")
+        failed_sectors = set()
+        if failure_log_path.exists():
+            try:
+                with failure_log_path.open("r", encoding="utf-8") as fh:
+                    failure_entries = json.load(fh)
+                if isinstance(failure_entries, list):
+                    for entry in failure_entries:
+                        sector_key = entry.get("sector")
+                        if sector_key:
+                            failed_sectors.add(sector_key)
+            except Exception:
+                pass
+
+        def fetch_sectors_from_api() -> List[Dict[str, str]]:
+            try:
+                api = TravellerMapAPI()
+                universe = api.get_universe()
+                sectors = universe.get("Sectors", [])
+                formatted = []
+                for entry in sectors:
+                    if isinstance(entry, dict):
+                        formatted.append(entry)
+                save_sector_cache(formatted)
+                return formatted
+            except Exception as fetch_error:
+                logger.error("Failed to refresh sector list", exc_info=True)
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"Unable to refresh sector list from Traveller Map API:\n{fetch_error}",
+                )
+                return []
+
+        dialog = DownloadOptionsDialog(
+            cached_sectors=cached_sectors,
+            sectors_with_data=sectors_with_data,
+            failed_sectors=failed_sectors,
+            fetch_callback=fetch_sectors_from_api,
+            parent=self,
+        )
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        download_options = {
+            "mode": dialog.download_mode,
+            "selected_sectors": dialog.selected_sectors,
+            "skip_existing": dialog.skip_existing,
+        }
+
         try:
             # Show console view with progress UI
             self.console_view.show_progress_bar(True)
             self.console_view.update_progress_bar(0)
             self.console_view.enable_cancel_button(True)
-            
-            # Start download
-            self.data_download_controller.start_download()
+
+            self.console_controller.show_console()
+
+            self.console_view.append_text("Preparing download...\n")
+            self.data_download_controller.start_download(download_options)
         except Exception as e:
             logger.error(f"API data download failed: {str(e)}", exc_info=True)
             QMessageBox.critical(self, "Error", f"Failed to download API data: {str(e)}")
@@ -855,8 +1073,31 @@ class HitchhikersGuideToTheGalaxy(QMainWindow):
         super().resizeEvent(event)
 
 if __name__ == "__main__":
-    logger.info("Starting application...")
-    app = QApplication(sys.argv)
-    window = HitchhikersGuideToTheGalaxy()
-    window.show()
-    sys.exit(app.exec())
+    try:
+        logger.info("Starting application...")
+        print("Creating QApplication...")
+        app = QApplication(sys.argv)
+        print("QApplication created successfully")
+        
+        print("Creating main window...")
+        try:
+            window = HitchhikersGuideToTheGalaxy()
+            print("Main window created successfully")
+            
+            print("Showing main window...")
+            window.show()
+            print("Main window show() called")
+            
+            print("Entering Qt event loop...")
+            sys.exit(app.exec())
+        except Exception as e:
+            logger.error(f"Error creating or showing main window: {str(e)}", exc_info=True)
+            print(f"ERROR: {str(e)}")
+            # Show a simple error dialog
+            error_app = QApplication.instance() or QApplication(sys.argv)
+            QMessageBox.critical(None, "Application Error", f"Failed to start application: {str(e)}")
+            sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error starting application: {str(e)}", exc_info=True)
+        print(f"FATAL ERROR: {str(e)}")
+        sys.exit(1)

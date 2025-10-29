@@ -1,0 +1,265 @@
+Phase;CategoryID;CategoryName;OptionID;OptionName;Reference
+1;1;General Type of Scenario;1;Investigation;2
+1;1;General Type of Scenario;2;Survival;3
+1;1;General Type of Scenario;3;Exploration;4
+1;1;General Type of Scenario;4;Assault;5
+1;1;General Type of Scenario;5;Trade;6
+1;1;General Type of Scenario;6;Sacrifice;7
+1;4;Type of Exploration;1;Alien structure;17
+1;4;Type of Exploration;2;Abandoned structure;18
+1;4;Type of Exploration;3;Natural phenomena;19
+1;4;Type of Exploration;4;Space;21
+1;4;Type of Exploration;5;Mental;22
+1;4;Type of Exploration;6;Urban;23
+1;5;Type of Assault;1;Stronghold;24
+1;5;Type of Assault;2;Murder;25
+1;5;Type of Assault;3;Uprising;26
+1;5;Type of Assault;4;Kidnap;27
+1;5;Type of Assault;5;War;28
+1;5;Type of Assault;6;Technological;29
+1;6;Type of Trade;1;Small expensive item;30
+1;6;Type of Trade;2;Rare item;31
+1;6;Type of Trade;3;Cargo;32
+1;6;Type of Trade;4;Technology;33
+1;6;Type of Trade;5;Prisoners;34
+1;6;Type of Trade;6;Star ships;35
+1;7;Type of Sacrifice;1;Money;36
+1;7;Type of Sacrifice;2;Livelihood;37
+1;7;Type of Sacrifice;3;Yourself;38
+1;7;Type of Sacrifice;4;An entire people;39
+1;7;Type of Sacrifice;5;Your hopes and dreams;40
+1;7;Type of Sacrifice;6;Time;41
+2;2;Type of Investigation;1;Where are they;4
+2;2;Type of Investigation;2;What happened;8
+2;2;Type of Investigation;3;Where is it;9
+2;2;Type of Investigation;4;What is this;10
+2;2;Type of Investigation;5;How do we stop it;11
+2;2;Type of Investigation;6;Who did this;12
+2;3;Type of Survival;1;Get away from it;11
+2;3;Type of Survival;2;Trapped;13
+2;3;Type of Survival;3;Creeping doom;14
+2;3;Type of Survival;4;Natural disaster;15
+2;3;Type of Survival;5;Hordes of the things;16
+2;3;Type of Survival;6;Assassin;20
+3;8;What happened;1;Missing person;12
+3;8;What happened;2;A thing appeared;21
+3;8;What happened;3;Missing items;9
+3;8;What happened;4;Murder;12
+3;8;What happened;5;It was moved;42
+3;8;What happened;6;Strange behaviour;22
+3;9;MacGuffin;1;Star ship;35
+3;9;MacGuffin;2;Bundle of cash;36
+3;9;MacGuffin;3;Technological miracle device;19
+3;9;MacGuffin;4;Jewels;36
+3;9;MacGuffin;5;Weapon;11
+3;9;MacGuffin;6;Secret;18
+3;10;Weird item;1;Alien artefact;42
+3;10;Weird item;2;New mineral;35
+3;10;Weird item;3;Sixth sense;20
+3;10;Weird item;4;Psionic item;17
+3;10;Weird item;5;Map;18
+3;10;Weird item;6;Living substance;30
+3;11;Threat;1;Solar event;18
+3;11;Threat;2;Failing crops;7
+3;11;Threat;3;Infestation;28
+3;11;Threat;4;Illness;22
+3;11;Threat;5;Invasion;21
+3;11;Threat;6;Political;19
+3;12;Who;1;Relative;25
+3;12;Who;2;Mysterious stranger;20
+3;12;Who;3;Powerful politician;26
+3;12;Who;4;Lifelong enemy;27
+3;12;Who;5;Insurgent;26
+3;12;Who;6;Alien emissary;42
+3;13;Trap;1;Snipers all around;26
+3;13;Trap;2;Rising water;26
+3;13;Trap;3;Social ties;27
+3;13;Trap;4;Locked exits;40
+3;13;Trap;5;Poisonous atmosphere;44
+3;13;Trap;6;Mental confusion;20
+3;14;Creeping doom;1;Dying sun;12
+3;14;Creeping doom;2;Infestation;16
+3;14;Creeping doom;3;Alien animals;31
+3;14;Creeping doom;4;Asteroid swarm;26
+3;14;Creeping doom;5;Poison air;35
+3;14;Creeping doom;6;Radiation;20
+3;15;Natural disaster;1;Black hole;32
+3;15;Natural disaster;2;Super nova;3
+3;15;Natural disaster;3;Storm;19
+3;15;Natural disaster;4;Drought;36
+3;15;Natural disaster;5;Collapse;21
+3;15;Natural disaster;6;Meteor;19
+3;16;Hordes of the things;1;Intelligent aliens;20
+3;16;Hordes of the things;2;Alien animals;42
+3;16;Hordes of the things;3;Insects;11
+3;16;Hordes of the things;4;Micro‑bots;5
+3;16;Hordes of the things;5;Fighter craft;27
+3;16;Hordes of the things;6;Mobile fungi;28
+3;17;Alien Structure;1;Hive ship;28
+3;17;Alien Structure;2;Abandoned station;44
+3;17;Alien Structure;3;Religious temple;29
+3;17;Alien Structure;4;Asteroid colony;44
+3;17;Alien Structure;5;Dead city;31
+3;17;Alien Structure;6;Military base;19
+3;18;Abandoned structure;1;Power station;35
+3;18;Abandoned structure;2;Floating framework;24
+3;18;Abandoned structure;3;Inverted pyramid;34
+3;18;Abandoned structure;4;Subterranean cavern;27
+3;18;Abandoned structure;5;Arena;42
+3;18;Abandoned structure;6;City;29
+3;19;Natural phenomena;1;Population boom;26
+3;19;Natural phenomena;2;Psionic scream;40
+3;19;Natural phenomena;3;Gravitational anomaly;31
+3;19;Natural phenomena;4;Solar fade;41
+3;19;Natural phenomena;5;Audible anomaly;11
+3;19;Natural phenomena;6;Biological die‑off;43
+3;20;Assassin;1;Professional killer;9
+3;20;Assassin;2;Angry fool;22
+3;20;Assassin;3;Alien;25
+3;20;Assassin;4;Underworld thugs;13
+3;20;Assassin;5;Corporate competitor;28
+3;20;Assassin;6;Racist;34
+3;21;Space exploration;1;Asteroid;13
+3;21;Space exploration;2;Space station;20
+3;21;Space exploration;3;Abandoned hulk;32
+3;21;Space exploration;4;Alien craft;44
+3;21;Space exploration;5;New planet;26
+3;21;Space exploration;6;Mysterious cloud;11
+3;22;Mental;1;Psionic;29
+3;22;Mental;2;Madness;40
+3;22;Mental;3;Invention;36
+3;22;Mental;4;Despair;10
+3;22;Mental;5;Expanding IQ;12
+3;22;Mental;6;Induced confusion;33
+3;23;Urban;1;Old factory complex;16
+3;23;Urban;2;The sewer system;12
+3;23;Urban;3;Abandoned apartment building;44
+3;23;Urban;4;Active atmosphere processor;29
+3;23;Urban;5;Ancient fortress;10
+3;23;Urban;6;Newly discovered alien environment;35
+3;24;Stronghold;1;Bunker complex;21
+3;24;Stronghold;2;Prefabricated fort;32
+3;24;Stronghold;3;Massive ancient tower;15
+3;24;Stronghold;4;Natural cave system;44
+3;24;Stronghold;5;Military camp;32
+3;24;Stronghold;6;Vehicular laager;39
+3;25;Murder;1;Legal execution;18
+3;25;Murder;2;Bloody reprisal;12
+3;25;Murder;3;Back alley mugging gone wrong;37
+3;25;Murder;4;Overdose;40
+3;25;Murder;5;Mass killing;26
+3;25;Murder;6;Starvation;27
+3;26;Uprising;1;Slave revolt;36
+3;26;Uprising;2;Military coup;32
+3;26;Uprising;3;Democratic movement;39
+3;26;Uprising;4;Provincial independence declaration;22
+3;26;Uprising;5;General strike;25
+3;26;Uprising;6;Ethnic aggression;30
+3;27;Kidnap;1;Protagonist;23
+3;27;Kidnap;2;Sibling or parent;43
+3;27;Kidnap;3;Employer;20
+3;27;Kidnap;4;Extended family;22
+3;27;Kidnap;5;Friend / Neighbour;36
+3;27;Kidnap;6;Child;23
+3;28;War;1;Capture equipment;35
+3;28;War;2;Kill leader;41
+3;28;War;3;Hold the line;41
+3;28;War;4;Take that hill;22
+3;28;War;5;Demolish structure;23
+3;28;War;6;Aggressive patrol;41
+3;29;Technological;1;Power out;41
+3;29;Technological;2;Communications block;39
+3;29;Technological;3;Robotic mayhem;42
+3;29;Technological;4;Overload explosion;44
+3;29;Technological;5;Life support failure;24
+3;29;Technological;6;Out of control vehicles;35
+3;30;Small expensive item;1;Antique;32
+3;30;Small expensive item;2;Extinct alien corpse;35
+3;30;Small expensive item;3;Computer program;13
+3;30;Small expensive item;4;Gem;42
+3;30;Small expensive item;5;Legal document;18
+3;30;Small expensive item;6;Key;17
+3;31;Rare item;1;Endangered animal;4
+3;31;Rare item;2;Piece of art/craft;43
+3;31;Rare item;3;New invention;22
+3;31;Rare item;4;Fossil;17
+3;31;Rare item;5;Artifact of the Ancients;19
+3;31;Rare item;6;Strange material;36
+3;32;Cargo;1;Weapons;37
+3;32;Cargo;2;Rare earth;18
+3;32;Cargo;3;Industrial gems;27
+3;32;Cargo;4;Animals;42
+3;32;Cargo;5;Engine parts;23
+3;32;Cargo;6;Food;16
+3;33;Technology;1;Ship engines;44
+3;33;Technology;2;Laser crystal;24
+3;33;Technology;3;Guidance system;44
+3;33;Technology;4;Comm's gear;34
+3;33;Technology;5;Power source;6
+3;33;Technology;6;Computer parts;25
+3;34;Prisoners;1;Prisoners of war;27
+3;34;Prisoners;2;Murderers;25
+3;34;Prisoners;3;Slaves;39
+3;34;Prisoners;4;Indentured workers;22
+3;34;Prisoners;5;Captured aliens;35
+3;34;Prisoners;6;Political rivals;25
+3;35;Star ships;1;Irradiated hulk;30
+3;35;Star ships;2;Damaged scout;37
+3;35;Star ships;3;New Corvette;25
+3;35;Star ships;4;Alien spy vessel;40
+3;35;Star ships;5;Decommissioned trader;43
+3;35;Star ships;6;Bulk fuel carrier;25
+3;36;Money;1;Wage stoppages;16
+3;36;Money;2;Just a few credits;40
+3;36;Money;3;Life savings;30
+3;36;Money;4;Thousands per month;12
+3;36;Money;5;One million credits;35
+3;36;Money;6;Punitive interest;37
+3;37;Livelihood;1;Change to part time;18
+3;37;Livelihood;2;Doubled working hours;26
+3;37;Livelihood;3;Need new skills;43
+3;37;Livelihood;4;Unemployed;22
+3;37;Livelihood;5;Everyone laid off;19
+3;37;Livelihood;6;Change industry;21
+3;38;Yourself;1;Livelihood;37
+3;38;Yourself;2;One year of your life;23
+3;38;Yourself;3;Tissue sample;17
+3;38;Yourself;4;Your home;24
+3;38;Yourself;5;Life savings;30
+3;38;Yourself;6;Your family;9
+3;39;An entire people;1;An extended family;15
+3;39;An entire people;2;The whole tribe;26
+3;39;An entire people;3;The last of the race;22
+3;39;An entire people;4;The complete colony;4
+3;39;An entire people;5;The crew;22
+3;39;An entire people;6;All the witnesses;11
+3;40;Hopes and dreams;1;Inheritance lost;15
+3;40;Hopes and dreams;2;Loved one leaves;38
+3;40;Hopes and dreams;3;Holiday venue destroyed;28
+3;40;Hopes and dreams;4;Criminal record;35
+3;40;Hopes and dreams;5;Poor health;39
+3;40;Hopes and dreams;6;Irrational fear;31
+3;41;Time;1;The next week;30
+3;41;Time;2;One year;25
+3;41;Time;3;A decade;34
+3;41;Time;4;Six months;30
+3;41;Time;5;Every Monday;27
+3;41;Time;6;Retirement;31
+3;42;Moved;1;Hidden next door;22
+3;42;Moved;2;On the star ship;9
+3;42;Moved;3;The next town;22
+3;42;Moved;4;On another planet;32
+3;42;Moved;5;Across the world;37
+3;42;Moved;6;The next subsector;33
+3;43;Skills;1;Computer;22
+3;43;Skills;2;Melee;20
+3;43;Skills;3;Firearm;28
+3;43;Skills;4;Piloting;21
+3;43;Skills;5;Navigation;19
+3;43;Skills;6;Social;7
+3;44;Failure;1;Accident;40
+3;44;Failure;2;Sabotage;35
+3;44;Failure;3;Wear and tear;33
+3;44;Failure;4;Faulty material;36
+3;44;Failure;5;Operator error;13
+3;44;Failure;6;Corrosion;33

@@ -3,9 +3,10 @@ import json
 import requests
 
 class TravellerMapAPI:
-    def __init__(self, base_url="https://travellermap.com"):
+    def __init__(self, base_url="https://travellermap.com", timeout: int = 30):
         # Base URL should not include the trailing /data; we'll add it as needed.
         self.base_url = base_url.rstrip('/')
+        self.timeout = timeout
 
     # -----------------------------
     # Universe Endpoints
@@ -17,9 +18,8 @@ class TravellerMapAPI:
         Returns: A JSON object with a "Sectors" key.
         """
         url = f"{self.base_url}/data"
-        response = requests.get(url)
-        if response.status_code != 200:
-            raise requests.HTTPError(f"Error fetching universe data: HTTP {response.status_code}")
+        response = requests.get(url, timeout=self.timeout)
+        response.raise_for_status()
         # Get the sectors list from the JSON response.
         
         return response.json()
@@ -37,9 +37,8 @@ class TravellerMapAPI:
         """
         url = f"{self.base_url}/data/sector/sec"
         params = {"sector": sector}
-        response = requests.get(url, params=params)
-        if response.status_code != 200:
-            raise requests.HTTPError(f"Error fetching SEC sector data for '{sector}': HTTP {response.status_code}")
+        response = requests.get(url, params=params, timeout=self.timeout)
+        response.raise_for_status()
         return response.text
 
     def parse_sec_line(self, line):
@@ -56,20 +55,19 @@ class TravellerMapAPI:
             data["raw_data"] = " ".join(tokens[3:])
         return data
     
-    def get_sector_t5(self, sector):
-        url = f"{self.base_url}/data/sector"
+    def get_sector_tab(self, sector: str, fmt: str = "tab") -> str:
+        """Retrieve sector data in the requested tabular format (tab, tab.2e, tab.fx, etc.)."""
+        url = f"{self.base_url}/data/sector/{fmt}"
         params = {"sector": sector}
-        response = requests.get(url, params=params)
-        if response.status_code != 200:
-            raise Exception(f"Error fetching T5 sector data for '{sector}': HTTP {response.status_code}")
+        response = requests.get(url, params=params, timeout=self.timeout)
+        response.raise_for_status()
         return response.text
 
     def download_sector_image(self, sector, save_path=None):
         url = f"{self.base_url}/data/sector/image"
         params = {"sector": sector}
-        response = requests.get(url, params=params)
-        if response.status_code != 200:
-            raise Exception(f"Error downloading sector image for '{sector}': HTTP {response.status_code}")
+        response = requests.get(url, params=params, timeout=self.timeout)
+        response.raise_for_status()
         if not save_path:
             folder = os.path.join("database", "content", "images", "sector")
             os.makedirs(folder, exist_ok=True)
@@ -127,7 +125,7 @@ if __name__ == "__main__":
             
             # Get sector T5 data (showing only a truncated portion).
             try:
-                t5_data = api.get_sector_t5(sector_name)
+                t5_data = api.get_sector_tab(sector_name)
                 display_data = t5_data[:200] + "..." if len(t5_data) > 200 else t5_data
                 print("Sector T5 data:", display_data)
             except Exception as e:

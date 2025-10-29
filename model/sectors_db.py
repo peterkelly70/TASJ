@@ -1,8 +1,9 @@
+from typing import List, Optional, Set, Tuple
+
+
 class SectorDB:
     def __init__(self, db_instance):
-        """
-        Initialize the SectorDB with a valid database instance.
-        """
+        """Initialize the SectorDB with a valid database instance."""
         self.db = db_instance
 
     def get_sector_by_name(self, sector_name):
@@ -40,42 +41,73 @@ class SectorDB:
             - y_coordinate
             - description (optional)
             - image_path (optional)
-        Returns True if the record was created successfully, False otherwise.
+        Returns the new sector_id if the record was created successfully, None otherwise.
         """
         result = self.db.create_record("sectors", data)
         if result == 1:
             print(f"Sector '{data.get('name')}' created successfully.")
-            return True
+            record = self.get_sector_by_name(data.get("name"))
+            return record[0] if record else None
         else:
             print(f"Failed to create sector '{data.get('name')}'.")
-            return False
+            return None
 
-    def upsert_sector(self, data):
+    def upsert_sector(self, data) -> Optional[int]:
         """
         Updates an existing sector record if it exists; otherwise, creates a new one.
         Expects data to contain at least a 'name' key.
-        Returns True if the operation was successful, False otherwise.
+        Returns the sector_id if successful, otherwise None.
         """
         sector_name = data.get("name")
         if not sector_name:
             print("Sector name is required for upsert.")
-            return False
+            return None
 
         existing = self.get_sector_by_name(sector_name)
         if existing:
-            # Optionally, merge or update specific fields
             result = self.db.update_record("sectors", data, {"name": sector_name})
             if result == 1:
                 print(f"Successfully updated sector '{sector_name}'.")
-                return True
             else:
                 print(f"Failed to update sector '{sector_name}'.")
-                return False
+            # Refresh to capture any updated values
+            updated = self.get_sector_by_name(sector_name)
+            return updated[0] if updated else None
+
+        created_id = self.create_sector(data)
+        if created_id is not None:
+            print(f"Successfully created sector '{sector_name}'.")
         else:
-            result = self.db.create_record("sectors", data)
-            if result == 1:
-                print(f"Successfully created sector '{sector_name}'.")
-                return True
-            else:
-                print(f"Failed to create sector '{sector_name}'.")
-                return False
+            print(f"Failed to create sector '{sector_name}'.")
+        return created_id
+
+    # --- Query helpers for controllers ---
+
+    def list_sector_names(self) -> List[str]:
+        """Return all sector names ordered alphabetically."""
+        rows = self.db.execute_query("SELECT name FROM sectors ORDER BY name")
+        return [row[0] for row in rows]
+
+    def list_sector_records(self) -> List[Tuple[int, str, Optional[str]]]:
+        """Return (sector_id, name, abbreviation) tuples for all sectors."""
+        rows = self.db.execute_query(
+            "SELECT sector_id, name, abbreviation FROM sectors ORDER BY name"
+        )
+        return [(row[0], row[1], row[2] if len(row) > 2 else None) for row in rows]
+
+    def list_systems_by_sector(self, sector_id: int) -> List[Tuple[str, str]]:
+        """Return distinct (hex, name) pairs for systems within a sector."""
+        rows = self.db.execute_query(
+            "SELECT hex, name FROM planets WHERE sector_id = ? AND hex IS NOT NULL ORDER BY hex",
+            (sector_id,),
+        )
+
+        systems: List[Tuple[str, str]] = []
+        seen: Set[str] = set()
+        for hex_code, name in rows:
+            hex_code = (hex_code or "").strip()
+            if not hex_code or hex_code in seen:
+                continue
+            seen.add(hex_code)
+            systems.append((hex_code, (name or "").strip()))
+        return systems
